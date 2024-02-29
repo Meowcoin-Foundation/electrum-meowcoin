@@ -1,0 +1,23 @@
+# If you want Electrum to appear in a Linux app launcher ("start menu"), install this by doing:
+# sudo desktop-file-install electrum-meowcoin.desktop
+# Note: This assumes $HOME/.local/bin is in your $PATH
+
+[Desktop Entry]
+Comment=Lightweight Meowcoin Client
+Exec=electrum_meowcoin %u
+GenericName[en_US]=Meowcoin Wallet
+GenericName=Meowcoin Wallet
+Icon=electrum
+Name[en_US]=Electrum Meowcoin Wallet
+Name=Electrum Meowcoin Wallet
+Categories=Finance;Network;
+StartupNotify=true
+StartupWMClass=electrum_meowcoin
+Terminal=false
+Type=Application
+MimeType=x-scheme-handler/meow
+Actions=Testnet;
+
+[Desktop Action Testnet]
+Exec=electrum_meowcoin --testnet %u
+Name=Testnet mode

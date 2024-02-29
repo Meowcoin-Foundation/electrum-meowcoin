@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NAME_ROOT=electrum-ravencoin
+NAME_ROOT=electrum-meowcoin
 
 export PYTHONDONTWRITEBYTECODE=1  # don't create __pycache__/ folders with .pyc files
 
@@ -47,16 +47,16 @@ $WINE_PYTHON -m pip install --no-build-isolation --no-dependencies --no-warn-scr
     --cache-dir "$WINE_PIP_CACHE_DIR" -r "$CONTRIB"/deterministic-build/requirements-hw.txt
 
 
-info "Installing pre-built ravencoin requirements..."
+info "Installing pre-built meowcoin requirements..."
 X16R="x16r_hash-1.0-cp310-cp310-win32.whl"
 X16RV2="x16rv2_hash-1.0-cp310-cp310-win32.whl"
 KAWPOW="kawpow-0.9.4.4-cp310-cp310-win32.whl"
 
-download_if_not_exist "$CACHEDIR/$X16R" "https://raw.githubusercontent.com/kralverde/electrum-ravencoin-wheels/master/$X16R"
+download_if_not_exist "$CACHEDIR/$X16R" "https://raw.githubusercontent.com/kralverde/electrum-meowcoin-wheels/master/$X16R"
 verify_hash "$CACHEDIR/$X16R" "65510849dbcc7ae174de9cd33c3c25a02b6fa83a83cd1697b07fbd1e2e039dd8"
-download_if_not_exist "$CACHEDIR/$X16RV2" "https://raw.githubusercontent.com/kralverde/electrum-ravencoin-wheels/master/$X16RV2"
+download_if_not_exist "$CACHEDIR/$X16RV2" "https://raw.githubusercontent.com/kralverde/electrum-meowcoin-wheels/master/$X16RV2"
 verify_hash "$CACHEDIR/$X16RV2" "190c8c914646045787e4e811ba9f75b6e948cc868d3b81dfab2b28ad12c94b44"
-download_if_not_exist "$CACHEDIR/$KAWPOW" "https://raw.githubusercontent.com/kralverde/electrum-ravencoin-wheels/master/$KAWPOW"
+download_if_not_exist "$CACHEDIR/$KAWPOW" "https://raw.githubusercontent.com/kralverde/electrum-meowcoin-wheels/master/$KAWPOW"
 verify_hash "$CACHEDIR/$KAWPOW" "dfef28523674c3592df91eefecd7826e65c3bf90a95ec9e2fa4cb36027fa975a"
 
 $WINE_PYTHON -m pip install --no-warn-script-location --cache-dir "$WINE_PIP_CACHE_DIR" "$CACHEDIR/$X16R"

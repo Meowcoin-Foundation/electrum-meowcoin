@@ -692,11 +692,11 @@ def user_dir():
     elif "ANDROID_DATA" in os.environ:
         return android_data_dir()
     elif os.name == "posix":
-        return os.path.join(os.environ["HOME"], ".electrum-ravencoin")
+        return os.path.join(os.environ["HOME"], ".electrum-meowcoin")
     elif "APPDATA" in os.environ:
-        return os.path.join(os.environ["APPDATA"], "Electrum-Ravencoin")
+        return os.path.join(os.environ["APPDATA"], "Electrum-Meowcoin")
     elif "LOCALAPPDATA" in os.environ:
-        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-Ravencoin")
+        return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-Meowcoin")
     else:
         # raise Exception("No home directory found in environment variables.")
         return
@@ -1000,23 +1000,15 @@ def age(
 
 
 mainnet_block_explorers = {
-    "rvn.cryptoscope.io": (
-        "https://rvn.cryptoscope.io/",
+    "mewc.cryptoscope.io": (
+        "https://mewc.cryptoscope.io/",
         {"tx": "tx/?txid=", "addr": "address/?address="},
-    ),
-    "ravencoin.network": (
-        "https://ravencoin.network/",
-        {"tx": "tx/", "addr": "address/"},
     ),
 }
 
 testnet_block_explorers = {
-    "rvn.cryptoscope.io": (
-        "https://rvnt.cryptoscope.io/",
-        {"tx": "tx/?txid=", "addr": "address/?address="},
-    ),
-    "ravencoin.network": (
-        "https://testnet.ravencoin.network/",
+    "mewc-explorer.coinminerz.com": (
+        "https://mewc-explorer.coinminerz.com/",
         {"tx": "tx/", "addr": "address/"},
     ),
 }
@@ -1418,7 +1410,7 @@ def format_short_id(short_channel_id: Optional[bytes]):
 
 def make_aiohttp_session(proxy: Optional[dict], headers=None, timeout=None):
     if headers is None:
-        headers = {"User-Agent": "Electrum-Ravencoin"}
+        headers = {"User-Agent": "Electrum-Meowcoin"}
     if timeout is None:
         # The default timeout is high intentionally.
         # DNS on some systems can be really slow, see e.g. #5337

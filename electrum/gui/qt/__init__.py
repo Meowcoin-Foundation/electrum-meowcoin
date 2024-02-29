@@ -122,7 +122,7 @@ class ElectrumGui(BaseElectrumGui, Logger):
         if hasattr(QtCore.Qt, "AA_ShareOpenGLContexts"):
             QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
         if hasattr(QGuiApplication, 'setDesktopFileName'):
-            QGuiApplication.setDesktopFileName('electrum-ravencoin.desktop')
+            QGuiApplication.setDesktopFileName('electrum-meowcoin.desktop')
         self.gui_thread = threading.current_thread()
         self.windows = []  # type: List[ElectrumWindow]
         self.efilter = OpenFileEventFilter(self.windows)
@@ -153,31 +153,20 @@ class ElectrumGui(BaseElectrumGui, Logger):
 
     def _init_tray(self):
         self.tray = QSystemTrayIcon(self.tray_icon(), None)
-        self.tray.setToolTip('Electrum')
+        self.tray.setToolTip('Meowcoin Electrum')
         self.tray.activated.connect(self.tray_activated)
         self.build_tray_menu()
         self.tray.show()
 
     def reload_app_stylesheet(self):
-        """Set the Qt stylesheet and custom colors according to the user-selected
-        light/dark theme.
-        TODO this can ~almost be used to change the theme at runtime (without app restart),
-             except for util.ColorScheme... widgets already created with colors set using
-             ColorSchemeItem.as_stylesheet() and similar will not get recolored.
-             See e.g.
-             - in Coins tab, the color for "frozen" UTXOs, or
-             - in TxDialog, the receiving/change address colors
-        """
         use_dark_theme = self.config.GUI_QT_COLOR_THEME == 'dark'
+        self.app.setStyle('Fusion')        
         if use_dark_theme:
-            try:
-                import qdarkstyle
-                self.app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            except BaseException as e:
-                use_dark_theme = False
-                self.logger.warning(f'Error setting dark theme: {repr(e)}')
+            from .dark_meowcoin_style import meowcoin_stylesheet
+            self.app.setStyleSheet(meowcoin_stylesheet)
         else:
-            self.app.setStyleSheet(self._default_qtstylesheet)
+            from .meowcoin_style import meowcoin_stylesheet
+            self.app.setStyleSheet(meowcoin_stylesheet)
         # Apply any necessary stylesheet patches
         patch_qt_stylesheet(use_dark_theme=use_dark_theme)
         # Even if we ourselves don't set the dark theme,

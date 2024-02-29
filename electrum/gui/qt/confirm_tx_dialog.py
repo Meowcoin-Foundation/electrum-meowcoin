@@ -408,7 +408,7 @@ class TxEditor(WindowModalDialog):
             self.toggle_locktime,
             _('Edit Locktime'), '', enabled=self.allow_edit_locktime)
         self.pref_menu.addSeparator()
-        # No lightning on ravencoin
+        # No lightning on meowcoincoin
         #add_pref_action(
         #    self.config.WALLET_SEND_CHANGE_TO_LIGHTNING,
         #    self.toggle_send_change_to_lightning,

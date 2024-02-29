@@ -42,8 +42,8 @@ def read_json(filename, default):
     return r
 
 
-GIT_REPO_URL = "https://github.com/Electrum-RVN-SIG/electrum-ravencoin"
-GIT_REPO_ISSUES_URL = "https://github.com/Electrum-RVN-SIG/electrum-ravencoin/issues"
+GIT_REPO_URL = "https://github.com/Electrum-RVN-SIG/electrum-meowcoin"
+GIT_REPO_ISSUES_URL = "https://github.com/Electrum-RVN-SIG/electrum-meowcoin/issues"
 BIP39_WALLET_FORMATS = read_json('bip39_wallet_formats.json', [])
 
 
@@ -106,17 +106,17 @@ class AbstractNet:
         return bytes.fromhex(bitcoin.rev_hex(cls.GENESIS))
 
 
-class RavencoinMainnet(AbstractNet):
+class MeowcoinMainnet(AbstractNet):
     NET_NAME = "mainnet"
     TESTNET = False
-    WIF_PREFIX = 128
-    ADDRTYPE_P2PKH = 60
+    WIF_PREFIX = 112
+    ADDRTYPE_P2PKH = 50
     ADDRTYPE_P2SH = 122
     ADDRTYPE_P2SH_ALT = 122
     MATURE = 60
     SEGWIT_HRP = "rc"
     BOLT11_HRP = SEGWIT_HRP
-    GENESIS = "0000006b444bc2f2ffe627be9d9e7e7a0730000870ef6eb6da46c8eae389df90"
+    GENESIS = "000000edd819220359469c54f2614b5602ebc775ea67a64602f354bdaa320f70"
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
     DEFAULT_SERVERS = read_json('servers.json', {})
     CHECKPOINTS = read_json('checkpoints.json', [])
@@ -125,14 +125,14 @@ class RavencoinMainnet(AbstractNet):
     DGW_CHECKPOINTS_START = 168 * DGW_CHECKPOINTS_SPACING  #338_688, DGW starts at 338_778
 
     X16Rv2ActivationTS = 1569945600
-    KawpowActivationTS = 1588788000
-    KawpowActivationHeight = 1219736
-    nDGWActivationBlock = 338778
+    KawpowActivationTS = 1662493424
+    KawpowActivationHeight = 373
+    nDGWActivationBlock = 373
 
-    DEFAULT_MESSAGE_CHANNELS = ['ELECTRUM_RAVENCOIN~notification']
-    ASSET_PREFIX = b'rvn'
-    SHORT_NAME = 'RVN'
-    LONG_NAME = 'Ravencoin'
+    DEFAULT_MESSAGE_CHANNELS = ['ELECTRUM_MEOWCOIN~notification']
+    ASSET_PREFIX = b'mewc'
+    SHORT_NAME = 'MEWC'
+    LONG_NAME = 'Meowcoin'
 
     MULTISIG_ASSETS = False
 
@@ -167,20 +167,20 @@ class RavencoinMainnet(AbstractNet):
     )
 
     BURN_ADDRESSES = BurnAddresses(
-        IssueAssetBurnAddress='RXissueAssetXXXXXXXXXXXXXXXXXhhZGt',
-        ReissueAssetBurnAddress='RXReissueAssetXXXXXXXXXXXXXXVEFAWu',
-        IssueSubAssetBurnAddress='RXissueSubAssetXXXXXXXXXXXXXWcwhwL',
-        IssueUniqueAssetBurnAddress='RXissueUniqueAssetXXXXXXXXXXWEAe58',
-        IssueMsgChannelAssetBurnAddress='RXissueMsgChanneLAssetXXXXXXSjHvAY',
-        IssueQualifierAssetBurnAddress='RXissueQuaLifierXXXXXXXXXXXXUgEDbC',
-        IssueSubQualifierAssetBurnAddress='RXissueSubQuaLifierXXXXXXXXXVTzvv5',
-        IssueRestrictedAssetBurnAddress='RXissueRestrictedXXXXXXXXXXXXzJZ1q',
-        AddNullQualifierTagBurnAddress='RXaddTagBurnXXXXXXXXXXXXXXXXZQm5ya',
-        GlobalBurnAddress='RXBurnXXXXXXXXXXXXXXXXXXXXXXWUo9FV'
+        IssueAssetBurnAddress='MCissueAssetXXXXXXXXXXXXXXXXa1oUfD',
+        ReissueAssetBurnAddress='MCReissueAssetXXXXXXXXXXXXXXUdjigq',
+        IssueSubAssetBurnAddress='MCissueSubAssetXXXXXXXXXXXXXbCnNFk',
+        IssueUniqueAssetBurnAddress='MCissueUniqueAssetXXXXXXXXXXSVUgF5',
+        IssueMsgChannelAssetBurnAddress='MCissueMsgChanneLAssetXXXXXXUe6Pvr',
+        IssueQualifierAssetBurnAddress='MCissueQuaLifierXXXXXXXXXXXXWLyvs5',
+        IssueSubQualifierAssetBurnAddress='MCissueSubQuaLifierXXXXXXXXXVHmaXW',
+        IssueRestrictedAssetBurnAddress='MCissueRestrictedXXXXXXXXXXXXfEYLU',
+        AddNullQualifierTagBurnAddress='MCaddTagBurnXXXXXXXXXXXXXXXXUrKr7b',
+        GlobalBurnAddress='MCBurnXXXXXXXXXXXXXXXXXXXXXXUkdzqy'
     )
 
 
-class RavencoinTestnet(AbstractNet):
+class MeowcoinTestnet(AbstractNet):
     NET_NAME = "testnet"
     BIP44_COIN_TYPE = 1
     LN_REALM_BYTE = 0
@@ -208,9 +208,9 @@ class RavencoinTestnet(AbstractNet):
     nDGWActivationBlock = 1
 
     DEFAULT_MESSAGE_CHANNELS = []
-    ASSET_PREFIX = b'rvn'
-    SHORT_NAME = 'tRVN'
-    LONG_NAME = 'Ravencoin'
+    ASSET_PREFIX = b'mewc'
+    SHORT_NAME = 'tMEWC'
+    LONG_NAME = 'Meowcoin'
     MULTISIG_ASSETS = False
     
     XPRV_HEADERS = {
@@ -266,13 +266,13 @@ def all_subclasses(cls):
 NETS_LIST = tuple(all_subclasses(AbstractNet))
 
 # don't import net directly, import the module instead (so that net is singleton)
-net = RavencoinMainnet
+net = MeowcoinMainnet
 
 
 def set_mainnet():
     global net
-    net = RavencoinMainnet
+    net = MeowcoinMainnet
 
 def set_testnet():
     global net
-    net = RavencoinTestnet
+    net = MeowcoinTestnet

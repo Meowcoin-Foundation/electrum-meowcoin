@@ -1,10 +1,10 @@
 _(If you've come here looking to simply run Electrum Ravencoin, you may download a prebuilt binary for
-[windows](https://github.com/Electrum-RVN-SIG/electrum-ravencoin/releases/download/v1.2.1/electrum-ravencoin-v1.2.1-setup.exe),
-[linux](https://github.com/Electrum-RVN-SIG/electrum-ravencoin/releases/download/v1.2.1/electrum-ravencoin-v1.2.1-x86_64.AppImage), and
-[mac](https://github.com/Electrum-RVN-SIG/electrum-ravencoin/releases/download/v1.2.0/electrum-ravencoin-v1.2.0.dmg)
-[or see other options](https://github.com/Electrum-RVN-SIG/electrum-ravencoin/releases/latest).)_
+[windows](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-setup.exe),
+[linux](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-x86_64.AppImage), and
+[mac](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/download/v1.2.0/electrum-meowcoin-v1.2.0.dmg)
+[or see other options](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/latest).)_
 
-Migrating from versions earlier than v1.0.0? Read the release notes for [that version](https://github.com/Electrum-RVN-SIG/electrum-ravencoin/releases/tag/v1.0.1).
+Migrating from versions earlier than v1.0.0? Read the release notes for [that version](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/tag/v1.0.1).
 
 # Electrum Ravencoin - Lightweight Ravencoin client
 

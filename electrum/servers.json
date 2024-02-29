@@ -1,17 +1,11 @@
 {
-    "rvn4lyfe.com": {
+    "127.0.0.1": {
       "pruning": "-",
       "s": "50002",
       "t": "50001",
       "version": "1.11"
     },
-    "aq7vuqykup2voklcrpqljf6jnjkzrouowsjfrmybdou5kdhrpr6sjjid.onion": {
-      "pruning": "-",
-      "s": "50002",
-      "t": "50001",
-      "version": "1.11"
-    },
-    "162.19.153.65": {
+    "173.212.231.94": {
       "pruning": "-",
       "s": "50002",
       "t": "50001",
