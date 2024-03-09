@@ -1,8 +1,8 @@
 _(If you've come here looking to simply run Electrum Ravencoin, you may download a prebuilt binary for
-[windows](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-setup.exe),
-[linux](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-x86_64.AppImage), and
-[mac](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/download/v1.2.0/electrum-meowcoin-v1.2.0.dmg)
-[or see other options](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/latest).)_
+[windows](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-setup.exe),
+[linux](https://github.com/Meowcoin-Foundation/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-x86_64.AppImage), and
+[mac](https://github.com/Meowcoin-Foundation/releases/download/v1.2.0/electrum-meowcoin-v1.2.1.dmg)
+[or see other options](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/latest).)_
 
 Migrating from versions earlier than v1.0.0? Read the release notes for [that version](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/tag/v1.0.1).
 
@@ -21,7 +21,7 @@ Homepage: https://electrum.org/
 
 ## Run your own server!
 
-https://github.com/Electrum-RVN-SIG/electrumx-ravencoin
+https://github.com/Meowcoin-Foundation/electrumx-meowcoin
 
 ## Need help?
 

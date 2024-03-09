@@ -1052,12 +1052,12 @@ class ColorSchemeItem:
 class ColorScheme:
     dark_scheme = False
 
-    GREEN = ColorSchemeItem("#117c11", "#8af296")
+    GREEN = ColorSchemeItem("#8af296", "#8af296")
     YELLOW = ColorSchemeItem("#897b2a", "#ffff00")
-    RED = ColorSchemeItem("#7c1111", "#f18c8c")
+    RED = ColorSchemeItem("#7F0000", "#f18c8c")
     BLUE = ColorSchemeItem("#123b7c", "#8cb3f2")
-    LIGHTBLUE = ColorSchemeItem("black", "#d0f0ff")
-    DEFAULT = ColorSchemeItem("black", "white")
+    LIGHTBLUE = ColorSchemeItem("#181818", "#d0f0ff")
+    DEFAULT = ColorSchemeItem("#0F0F0F", "white")
     GRAY = ColorSchemeItem("gray", "gray")
     LIGHT_GRAY = ColorSchemeItem("#303044", "#f0f0f0")
 

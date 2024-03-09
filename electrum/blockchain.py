@@ -34,8 +34,8 @@ from .util import bfh, with_lock
 from .logging import get_logger, Logger
 
 import x16r_hash
-import x16rv2_hash
 import kawpow
+import meowpow
     
 if TYPE_CHECKING:
     from .simple_config import SimpleConfig
@@ -44,6 +44,7 @@ _logger = get_logger(__name__)
 
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 KAWPOW_LIMIT = 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
+MEOWPOW_LIMIT = 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
 
 HEADER_SIZE = 120  # bytes
 LEGACY_HEADER_SIZE = 80
@@ -108,12 +109,10 @@ def hash_header(header: dict) -> str:
         return '0' * 64
     if header.get('prev_block_hash') is None:
         header['prev_block_hash'] = '00' * 32
-    if header['timestamp'] >= constants.net.KawpowActivationTS:
+    if header['timestamp'] >= constants.net.KawpowActivationTS and header['timestamp'] < constants.net.MeowpowActivationTS:
         return hash_raw_header_kawpow(serialize_header(header))
-    elif header['timestamp'] >= constants.net.X16Rv2ActivationTS:
-        hdr = serialize_header(header)[:80 * 2]
-        h = hash_raw_header_v2(hdr)
-        return h
+    elif header['timestamp'] >= constants.net.MeowpowActivationTS:
+        return hash_raw_header_meowpow(serialize_header(header))
     else:
         hdr = serialize_header(header)[:80 * 2]
         h = hash_raw_header_v1(hdr)
@@ -122,12 +121,6 @@ def hash_header(header: dict) -> str:
 
 def hash_raw_header_v1(header: str) -> str:
     raw_hash = x16r_hash.getPoWHash(bfh(header)[:80])
-    hash_result = hash_encode(raw_hash)
-    return hash_result
-
-
-def hash_raw_header_v2(header: str) -> str:
-    raw_hash = x16rv2_hash.getPoWHash(bfh(header)[:80])
     hash_result = hash_encode(raw_hash)
     return hash_result
 
@@ -148,6 +141,19 @@ def kawpow_hash(hdr_bin):
 
 def hash_raw_header_kawpow(header: str) -> str:
     final_hash = hash_encode(kawpow_hash(bfh(header)))
+    return final_hash
+
+
+def meowpow_hash(hdr_bin):
+    header_hash = revb(sha256d(hdr_bin[:80]))
+    mix_hash = revb(hdr_bin[88:120])
+    nNonce64 = struct.unpack("< Q", hdr_bin[80:88])[0]
+    final_hash = revb(meowpow.light_verify(header_hash, mix_hash, nNonce64))
+    return final_hash
+
+
+def hash_raw_header_meowpow(header: str) -> str:
+    final_hash = hash_encode(meowpow_hash(bfh(header)))
     return final_hash
 
 
@@ -678,8 +684,11 @@ class Blockchain(Logger):
             h, t = self.checkpoints[index][dgw_height_checkpoint]
             return t
         # There was a difficulty reset for kawpow
-        elif not constants.net.TESTNET and height in range(1219736, 1219736 + 180):  # kawpow reset
+        elif not constants.net.TESTNET and height in range(373, 373 + 180):  # kawpow reset
             return KAWPOW_LIMIT
+        #todo Get Block height
+        elif not constants.net.TESTNET and height in range(800000, 800000 + 180):  # meowpow reset
+            return MEOWPOW_LIMIT
         # If we have a DWG header already saved to our header cache (i.e. for a reorg), get that
         elif height <= self.height():
             return self.bits_to_target(self.read_header(height)['bits'])

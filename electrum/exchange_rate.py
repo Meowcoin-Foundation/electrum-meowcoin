@@ -169,7 +169,7 @@ class ExchangeBase(Logger):
 
     def get_cached_spot_quote(self, ccy: str) -> Decimal:
         """Returns the cached exchange rate as a Decimal"""
-        if ccy == 'RVN':
+        if ccy == 'MEWC':
             return Decimal(1)
         rate = self._quotes.get(ccy)
         if rate is None:

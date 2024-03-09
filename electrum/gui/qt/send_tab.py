@@ -206,6 +206,7 @@ class SendTab(QWidget, MessageBoxMixin, Logger):
         hbox.addLayout(vbox0)
         hbox.addStretch(1)
 
+        self.setObjectName("send_container")
         vbox = QVBoxLayout(self)
         vbox.addLayout(self.toolbar)
         vbox.addLayout(hbox)

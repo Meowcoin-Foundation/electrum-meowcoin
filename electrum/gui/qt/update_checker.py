@@ -20,8 +20,8 @@ from electrum._vendor.distutils.version import StrictVersion
 
 
 class UpdateCheck(QDialog, Logger):
-    url = "https://raw.githubusercontent.com/Electrum-RVN-SIG/electrum-meowcoin/master/check-version.json"
-    download_url = "https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases"
+    url = "https://raw.githubusercontent.com/Meowcoin-Foundation/electrum-meowcoin/main/check-version.json"
+    download_url = "https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
         "RPuQNvDVBC5Q4fXKyfYLjrunbyqiEYckP5",  # kralverde since ravencoin fork

@@ -169,8 +169,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
 
     def __init__(self, gui_object: 'ElectrumGui', wallet: Abstract_Wallet):
         QMainWindow.__init__(self)
-        QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), '../font/PixeloidSans.otf'))       
-        QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), '../font/PixeloidSans-Bold.otf'))       
+        QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), '../fonts/PixeloidSans.otf').replace(os.sep, '/'))       
+        QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), '../fonts/PixeloidSans-Bold.otf').replace(os.sep, '/'))       
         self.gui_object = gui_object
         self.setObjectName("main_window_container")
         self.config = config = gui_object.config  # type: SimpleConfig
@@ -825,7 +825,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         help_menu = menubar.addMenu(_("&Help"))
         help_menu.addAction(_("&About"), self.show_about)
         help_menu.addAction(_("&Check for updates"), self.show_update_check)
-        help_menu.addAction(_("&Official website"), lambda: webopen("https://github.com/Electrum-RVN-SIG/electrum-meowcoin"))
+        help_menu.addAction(_("&Official website"), lambda: webopen("https://www.mewccrypto.com/"))
         help_menu.addSeparator()
         help_menu.addAction(_("&Documentation"), lambda: webopen("http://docs.electrum.org/")).setShortcut(QKeySequence.HelpContents)
         #if not constants.net.TESTNET:
@@ -872,7 +872,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
     def show_report_bug(self):
         msg = ' '.join([
             _("Please report any bugs as issues on github:<br/>"),
-            f'''<a href="{constants.GIT_REPO_ISSUES_URL}">{constants.GIT_REPO_ISSUES_URL}</a><br/><br/>''',
+            f'''<a href="{constants.GIT_REPO_ISSUES_URL}" style="color: #BE840A">{constants.GIT_REPO_ISSUES_URL}</a><br/><br/>''',
             _("Before reporting a bug, upgrade to the most recent version of Electrum (latest release or git HEAD), and include the version number in your report."),
             _("Try to explain not only what the bug is, but how it occurs.")
          ])
@@ -1217,6 +1217,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         from .broadcast_view_tab import ViewBroadcastTab
         tab = ViewBroadcastTab(self)
         tab.is_shown_cv = self.config.cv.GUI_QT_SHOW_TAB_BROADCASTS
+        tab.setObjectName("broadcast_container")
         return tab
 
     def create_atomic_swap_tab(self):
@@ -1509,21 +1510,24 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
 
     def create_addresses_tab(self):
         from .address_list import AddressList
-        self.address_list = AddressList(self)
-        tab =  self.create_list_tab(self.address_list)
+        self.address_list = l = AddressList(self)
+        l.setObjectName("addresses_container")
+        tab =  self.create_list_tab(l)
         tab.is_shown_cv = self.config.cv.GUI_QT_SHOW_TAB_ADDRESSES
         return tab
 
     def create_utxo_tab(self):
         from .utxo_list import UTXOList
-        self.utxo_list = UTXOList(self)
-        tab = self.create_list_tab(self.utxo_list)
+        self.utxo_list = l = UTXOList(self)
+        l.setObjectName("utxo_container")
+        tab = self.create_list_tab(l)
         tab.is_shown_cv = self.config.cv.GUI_QT_SHOW_TAB_UTXO
         return tab
 
     def create_contacts_tab(self):
         from .contact_list import ContactList
         self.contact_list = l = ContactList(self)
+        l.setObjectName("contacts_container")
         tab = self.create_list_tab(l)
         tab.is_shown_cv = self.config.cv.GUI_QT_SHOW_TAB_CONTACTS
         return tab
@@ -1661,6 +1665,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         from .console import Console
         self.console = console = Console()
         console.is_shown_cv = self.config.cv.GUI_QT_SHOW_TAB_CONSOLE
+        console.setObjectName("console_container")
         return console
 
     def update_console(self):

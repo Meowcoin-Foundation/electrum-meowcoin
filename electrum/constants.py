@@ -42,8 +42,8 @@ def read_json(filename, default):
     return r
 
 
-GIT_REPO_URL = "https://github.com/Electrum-RVN-SIG/electrum-meowcoin"
-GIT_REPO_ISSUES_URL = "https://github.com/Electrum-RVN-SIG/electrum-meowcoin/issues"
+GIT_REPO_URL = "https://github.com/Meowcoin-Foundation/electrum-meowcoin"
+GIT_REPO_ISSUES_URL = "https://github.com/Meowcoin-Foundation/electrum-meowcoin/issues"
 BIP39_WALLET_FORMATS = read_json('bip39_wallet_formats.json', [])
 
 
@@ -127,6 +127,7 @@ class MeowcoinMainnet(AbstractNet):
     X16Rv2ActivationTS = 1569945600
     KawpowActivationTS = 1662493424
     KawpowActivationHeight = 373
+    MeowpowActivationTS = 1710799200
     nDGWActivationBlock = 373
 
     DEFAULT_MESSAGE_CHANNELS = ['ELECTRUM_MEOWCOIN~notification']
@@ -152,7 +153,7 @@ class MeowcoinMainnet(AbstractNet):
         'p2wsh': 0x02aa7ed3,  # Zpub
     }
     XPUB_HEADERS_INV = inv_dict(XPUB_HEADERS)
-    BIP44_COIN_TYPE = 175
+    BIP44_COIN_TYPE = 1669
 
     BURN_AMOUNTS = BurnAmounts(
         IssueAssetBurnAmount=500,
@@ -203,8 +204,9 @@ class MeowcoinTestnet(AbstractNet):
     DGW_CHECKPOINTS_START = 0
 
     X16Rv2ActivationTS = 1567533600
-    KawpowActivationTS = 1585159200
-    KawpowActivationHeight = 231544
+    KawpowActivationTS = 1585159201
+    MeowpowActivationTS = 1585159200
+    KawpowActivationHeight = 1
     nDGWActivationBlock = 1
 
     DEFAULT_MESSAGE_CHANNELS = []

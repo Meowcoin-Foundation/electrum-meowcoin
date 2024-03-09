@@ -109,11 +109,7 @@ def base_units_list():
     return [constants.net.SHORT_NAME]
 
 
-# base_units = {'RVN':8} #, 'mBTC':5, 'bits':2, 'sat':0}
-# base_units_inverse = inv_dict(base_units)
-# base_units_list = ['RVN'] #, 'mBTC', 'bits', 'sat']  # list(dict) does not guarantee order
-
-DECIMAL_POINT_DEFAULT = 8  # RVN
+DECIMAL_POINT_DEFAULT = 8  # MEWC
 
 
 class UnknownBaseUnit(Exception):

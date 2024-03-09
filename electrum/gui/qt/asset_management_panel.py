@@ -124,7 +124,7 @@ class ManageAssetPanel(QWidget, Logger):
         grid.addWidget(self.asset_checker.line_edit, 1, 2, 1, 9)
         grid.addWidget(self.asset_checker.error_button, 1, 11)
 
-        self.send_button = EnterButton(_("Pay") + f" {self.burn_amount} RVN...", self._create_tx)
+        self.send_button = EnterButton(_("Pay") + f" {self.burn_amount} MEWC...", self._create_tx)
         self.send_button.setEnabled(False)
         self.send_button.setMinimumWidth(char_width_in_lineedit() * 16)
 
@@ -497,7 +497,7 @@ class CreateAssetPanel(ManageAssetPanel):
     def _clayout_on_edit(self, clayout: ChoicesLayout):
         self.burn_address = self.asset_types[clayout.selected_index()][2]
         self.burn_amount = self.asset_types[clayout.selected_index()][3]
-        self.send_button.setText(_("Pay") + f" {self.burn_amount} RVN...")
+        self.send_button.setText(_("Pay") + f" {self.burn_amount} MEWC...")
 
         self.amount_e.setAmount(COIN)
         self.divisions_e.setAmount(0)
@@ -772,7 +772,7 @@ class CreateAssetPanel(ManageAssetPanel):
 
             try:
                 if not goto_address:
-                    # Freeze a change address so it is seperate from the rvn change
+                    # Freeze a change address so it is seperate from the mewc change
                     self.parent.wallet.set_reserved_state_of_address(asset_change_address, reserved=True)
                 if parent_asset_change_address:
                     self.parent.wallet.set_reserved_state_of_address(parent_asset_change_address, reserved=True)
@@ -910,7 +910,7 @@ class ReissueAssetPanel(ManageAssetPanel):
         super().__init__(parent)
         self.burn_address = constants.net.BURN_ADDRESSES.ReissueAssetBurnAddress
         self.burn_amount = constants.net.BURN_AMOUNTS.ReissueAssetBurnAmount
-        self.send_button.setText(_("Pay") + f" {self.burn_amount} RVN...")
+        self.send_button.setText(_("Pay") + f" {self.burn_amount} MEWC...")
         self.asset_selector_combo.setVisible(True)
         self.amount_e.min_amount = 0
         self.amount_e.setAmount(0)
@@ -1000,7 +1000,7 @@ class ReissueAssetPanel(ManageAssetPanel):
 
             try:
                 if not goto_address:
-                    # Freeze a change address so it is seperate from the rvn change
+                    # Freeze a change address so it is seperate from the mewc change
                     self.parent.wallet.set_reserved_state_of_address(asset_change_address, reserved=True)
                 self.parent.wallet.set_reserved_state_of_address(parent_asset_change_address, reserved=True)
 

@@ -428,7 +428,7 @@ class TxEditor(WindowModalDialog):
                 _('This may result in higher transactions fees.')
             ]))
         self.use_multi_change_menu.setEnabled(self.wallet.use_change)
-        # RVN cannot replace mempool txs
+        # MEWC cannot replace mempool txs
         #add_pref_action(
         #    self.config.WALLET_BATCH_RBF,
         #    self.toggle_batch_rbf,
@@ -611,7 +611,7 @@ class TxEditor(WindowModalDialog):
         # warn if null outputs
         if any(output.asset_aware_value() == 0 for output in self.tx.outputs()):
             messages.append(_('This transaction has outputs with 0 amount.'))
-        # NOTE: RVN doesnt bump fees apparently
+        # NOTE: MEWC doesnt bump fees apparently
         #if num_change == 0:
         #    messages.append(_('Make sure you pay enough mining fees; you will not be able to bump the fee later.'))
 

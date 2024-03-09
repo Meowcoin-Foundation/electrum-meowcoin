@@ -162,6 +162,8 @@ class MetadataInfo(QWidget):
         self.association_history_button.setMaximumWidth(20)
 
         header_layout = QHBoxLayout()
+        self.setObjectName("send_container")
+
         header_layout.addWidget(self.header)
         header_layout.addWidget(self.metadata_history_button)
         header_layout.addWidget(self.verifier_history_button)

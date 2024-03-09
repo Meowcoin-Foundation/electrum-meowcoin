@@ -67,6 +67,7 @@ class SettingsDialog(QDialog, QtEventListener):
 
         vbox = QVBoxLayout()
         tabs = QTabWidget()
+        tabs.setObjectName("settings_tab")
 
         # language
         lang_help = _('Select which language is used in the GUI (after restart).')
@@ -506,6 +507,7 @@ class SettingsDialog(QDialog, QtEventListener):
         ]
         for widgets, name in tabs_info:
             tab = QWidget()
+            tab.setObjectName(name)            
             tab_vbox = QVBoxLayout(tab)
             grid = QGridLayout()
             for a,b in widgets:

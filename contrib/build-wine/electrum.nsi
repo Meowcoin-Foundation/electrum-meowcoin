@@ -46,7 +46,7 @@
   SetCompressorDictSize 64
 
   ;Sets the text that is shown (by default it is 'Nullsoft Install System vX.XX') in the bottom of the install window. Setting this to an empty string ("") uses the default; to set the string to blank, use " " (a space).
-  BrandingText "${PRODUCT_NAME} Installer ${PRODUCT_VERSION}"
+  BrandingText "${PRODUCT_NAME} Installer v${PRODUCT_VERSION}"
 
   ;Sets what the titlebars of the installer will display. By default, it is 'Name Setup', where Name is specified with the Name command. You can, however, override it with 'MyApp Installer' or whatever. If you specify an empty string (""), the default will be used (you can however specify " " to achieve a blank string)
   Caption "${PRODUCT_NAME}"
@@ -133,10 +133,10 @@ Section
 
 
   ;Links bitcoin: and lightning: URIs to Electrum
-  WriteRegStr HKCU "Software\Classes\raven" "" "URL:raven Protocol"
-  WriteRegStr HKCU "Software\Classes\raven" "URL Protocol" ""
-  WriteRegStr HKCU "Software\Classes\raven" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\raven\shell\open\command" "" "$\"$INSTDIR\electrum-meowcoin-${PRODUCT_VERSION}.exe$\" $\"%1$\""
+  WriteRegStr HKCU "Software\Classes\meowcoin" "" "URL:meowcoin Protocol"
+  WriteRegStr HKCU "Software\Classes\meowcoin" "URL Protocol" ""
+  WriteRegStr HKCU "Software\Classes\meowcoin" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""
+  WriteRegStr HKCU "Software\Classes\meowcoin\shell\open\command" "" "$\"$INSTDIR\electrum-meowcoin-${PRODUCT_VERSION}.exe$\" $\"%1$\""
   ;WriteRegStr HKCU "Software\Classes\lightning" "" "URL:lightning Protocol"
   ;WriteRegStr HKCU "Software\Classes\lightning" "URL Protocol" ""
   ;WriteRegStr HKCU "Software\Classes\lightning" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""

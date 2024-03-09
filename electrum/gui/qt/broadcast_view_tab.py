@@ -219,9 +219,11 @@ class ViewBroadcastTab(QWidget, Logger, MessageBoxMixin):
         self.has_new = False
 
         self.window = window
+
         hbox = QHBoxLayout()
         vbox = QVBoxLayout()
         self.asset_list = BroadcastAssetList(self, window)
+
         vbox.addWidget(self.asset_list)
         hbox.addLayout(vbox)
         vbox = QVBoxLayout()
@@ -229,8 +231,10 @@ class ViewBroadcastTab(QWidget, Logger, MessageBoxMixin):
         vbox.addWidget(self.broadcast_list, stretch=1)
 
         self.ipfs_viewer = IPFSViewer(window)
+
         self.source_seperator = QHSeperationLine()
         self.source_seperator.setVisible(False)
+
         self.main_source_label = QLabel(_('Broadcast Source'))
         self.main_source_label.setVisible(False)
         self.main_source_txid = AutoResizingTextEdit()
@@ -248,6 +252,7 @@ class ViewBroadcastTab(QWidget, Logger, MessageBoxMixin):
         scroll_box.addWidget(self.main_source_label)
         scroll_box.addWidget(self.main_source_txid)
         scroll_box.addWidget(self.main_source_button)
+        
         scroll_box.addStretch()
 
         scroll = QScrollArea()
@@ -306,6 +311,7 @@ class ViewBroadcastTab(QWidget, Logger, MessageBoxMixin):
         self.update_associated_data_trigger.connect(lambda x, y, z: self.switch_associcated_data(x, y, z))
 
         self.searchable_list = SearchableListGrouping(self.asset_list, self.broadcast_list)
+
 
     def _show_source_tx(self, txid_widget):
         txid = txid_widget.toPlainText()
