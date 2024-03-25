@@ -1,12 +1,10 @@
-_(If you've come here looking to simply run Electrum Ravencoin, you may download a prebuilt binary for
-[windows](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-setup.exe),
-[linux](https://github.com/Meowcoin-Foundation/releases/download/v1.2.1/electrum-meowcoin-v1.2.1-x86_64.AppImage), and
-[mac](https://github.com/Meowcoin-Foundation/releases/download/v1.2.0/electrum-meowcoin-v1.2.1.dmg)
+_(If you've come here looking to simply run Electrum Meowcoin, you may download a prebuilt binary for
+[windows](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v1.2.2/electrum-meowcoin-v1.2.2-setup.exe),
+[linux](https://github.com/Meowcoin-Foundation/releases/download/v1.2.2/electrum-meowcoin-v1.2.2-x86_64.AppImage), and
+[mac](https://github.com/Meowcoin-Foundation/releases/download/v1.2.2/electrum-meowcoin-v1.2.2.dmg)
 [or see other options](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/latest).)_
 
-Migrating from versions earlier than v1.0.0? Read the release notes for [that version](https://github.com/Electrum-RVN-SIG/electrum-meowcoin/releases/tag/v1.0.1).
-
-# Electrum Ravencoin - Lightweight Ravencoin client
+# Electrum Meowcoin - Lightweight Meowcoin client
 
 ```
 Licence: MIT Licence
@@ -15,17 +13,12 @@ Language: Python (>= 3.8)
 Homepage: https://electrum.org/
 ```
 
-[![Build Status](https://api.cirrus-ci.com/github/spesmilo/electrum.svg?branch=master)](https://cirrus-ci.com/github/spesmilo/electrum)
-[![Test coverage statistics](https://coveralls.io/repos/github/spesmilo/electrum/badge.svg?branch=master)](https://coveralls.io/github/spesmilo/electrum?branch=master)
-[![Help translate Electrum online](https://d322cqt584bo4o.cloudfront.net/electrum/localized.svg)](https://crowdin.com/project/electrum)
-
 ## Run your own server!
 
 https://github.com/Meowcoin-Foundation/electrumx-meowcoin
 
 ## Need help?
-
-Find @kralverde on [discord](https://discord.com/invite/jn6uhur).
+Find @CatBreeder on [discord](https://discord.gg/meowcoin).
 
 ## Getting started
 
@@ -138,7 +131,6 @@ $ pytest electrum/tests/test_bitcoin.py -v
 - [Linux (AppImage)](contrib/build-linux/appimage/README.md)
 - [macOS](contrib/osx/README.md)
 - [Windows](contrib/build-wine/README.md)
-- [Android](contrib/android/Readme.md)
 
 
 ## Contributing
