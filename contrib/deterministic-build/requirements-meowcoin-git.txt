@@ -1,2 +1,2 @@
 x16r_hash @ git+https://github.com/brian112358/x16r_hash@d79211ee8b5d86a9709caefded79f318a1d9f3a8
-MEOWPOW @ git+https://github.com/Meowcoin-Foundation/cpp-meowpow@71a3bdec82e814f925c9d2498762408739c771a3
+meowpow @ git+https://github.com/Meowcoin-Foundation/cpp-meowpow@fb738b9fa8ed429db07f57381cc96fc57051b205

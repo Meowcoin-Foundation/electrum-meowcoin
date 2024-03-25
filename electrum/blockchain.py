@@ -34,6 +34,7 @@ from .util import bfh, with_lock
 from .logging import get_logger, Logger
 
 import x16r_hash
+import x16rv2_hash
 import kawpow
 import meowpow
     
@@ -124,6 +125,10 @@ def hash_raw_header_v1(header: str) -> str:
     hash_result = hash_encode(raw_hash)
     return hash_result
 
+def hash_raw_header_v2(header: str) -> str:
+    raw_hash = x16rv2_hash.getPoWHash(bfh(header)[:80])
+    hash_result = hash_encode(raw_hash)
+    return hash_result
 
 def revb(data):
     b = bytearray(data)
@@ -686,8 +691,8 @@ class Blockchain(Logger):
         # There was a difficulty reset for kawpow
         elif not constants.net.TESTNET and height in range(373, 373 + 180):  # kawpow reset
             return KAWPOW_LIMIT
-        #todo Get Block height
-        elif not constants.net.TESTNET and height in range(800000, 800000 + 180):  # meowpow reset
+        # There was a difficulty reset for meowpow
+        elif not constants.net.TESTNET and height in range(801212, 801212 + 180):  # meowpow reset
             return MEOWPOW_LIMIT
         # If we have a DWG header already saved to our header cache (i.e. for a reorg), get that
         elif height <= self.height():

@@ -1074,7 +1074,6 @@ ipfs_explorers = {
     "dweb.link": ("https://dweb.link", {"ipfs": "ipfs/"}),
     "cf-ipfs.com": ("https://cf-ipfs.com", {"ipfs": "ipfs/"}),
     "w3s.link": ("https://w3s.link", {"ipfs": "ipfs/"}),
-    "trustless-gateway.link": ("https://trustless-gateway.link", {"ipfs": "ipfs/"}),
     "nftstorage.link": ("https://nftstorage.link", {"ipfs": "ipfs/"}),
 }
 
@@ -1684,7 +1683,7 @@ def is_tor_socks_port(host: str, port: int) -> bool:
 
 AS_LIB_USER_I_WANT_TO_MANAGE_MY_OWN_ASYNCIO_LOOP = False  # used by unit tests
 
-_asyncio_event_loop = None  # type: Optional[asyncio.AbstractEventLoop]
+_asyncio_event_loop =  None  # type: Optional[asyncio.AbstractEventLoop]
 
 
 def get_asyncio_loop() -> asyncio.AbstractEventLoop:

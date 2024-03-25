@@ -50,6 +50,11 @@ function download_if_not_exist() {
     fi
 }
 
+function download() {
+    local file_name=$1 url=$2
+    wget -O $file_name "$url"
+}
+
 # https://github.com/travis-ci/travis-build/blob/master/lib/travis/build/templates/header.sh
 function retry() {
     local result=0

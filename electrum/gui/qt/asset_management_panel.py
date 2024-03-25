@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QVBoxLayout, QGridLayout, QCheckBox, QWidget, QComboBox, QMessageBox
 
 from electrum import constants
-from electrum.asset import (get_error_for_asset_typed, AssetType, DEFAULT_ASSET_AMOUNT_MAX, QUALIFIER_ASSET_AMOUNT_MAX, MAX_VERIFIER_STING_LENGTH, generate_create_script, generate_owner_script,
+from electrum.asset import (get_error_for_asset_typed, AssetType, DEFAULT_ASSET_AMOUNT_MAX, QUALIFIER_ASSET_AMOUNT_MAX, MAX_VERIFIER_STRING_LENGTH, generate_create_script, generate_owner_script,
                             MAX_NAME_LENGTH, parse_verifier_string, compress_verifier_string, generate_verifier_tag, generate_reissue_script)
 from electrum.bitcoin import base_decode, BaseDecodeError, COIN, is_b58_address, b58_address_to_hash160
 from electrum.i18n import _
@@ -217,7 +217,7 @@ class ManageAssetPanel(QWidget, Logger):
                 input = input.upper()
             pos = self.verifier_e.line_edit.cursorPosition()
             compressed = compress_verifier_string(input)
-            while len(compressed) > MAX_VERIFIER_STING_LENGTH:
+            while len(compressed) > MAX_VERIFIER_STRING_LENGTH:
                 input = input[:-1]
                 compressed = compress_verifier_string(input)
             self.verifier_e.line_edit.setText(input)

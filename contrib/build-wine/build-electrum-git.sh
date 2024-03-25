@@ -49,17 +49,21 @@ $WINE_PYTHON -m pip install --no-build-isolation --no-dependencies --no-warn-scr
 
 info "Installing pre-built meowcoin requirements..."
 X16R="x16r_hash-1.0-cp310-cp310-win32.whl"
+X16RV2="x16rv2_hash-1.0-cp310-cp310-win32.whl"
 KAWPOW="kawpow-0.9.4.4-cp310-cp310-win32.whl"
 MEOWPOW="meowpow-0.5.2-cp310-cp310-win32.whl"
 
 download_if_not_exist "$CACHEDIR/$X16R" "https://raw.githubusercontent.com/Meowcoin-Foundation/electrum-meowcoin-wheels/main/$X16R"
 verify_hash "$CACHEDIR/$X16R" "65510849dbcc7ae174de9cd33c3c25a02b6fa83a83cd1697b07fbd1e2e039dd8"
+download_if_not_exist "$CACHEDIR/$X16RV2" "https://raw.githubusercontent.com/Meowcoin-Foundation/electrum-meowcoin-wheels/main/$X16RV2"
+verify_hash "$CACHEDIR/$X16RV2" "190c8c914646045787e4e811ba9f75b6e948cc868d3b81dfab2b28ad12c94b44"
 download_if_not_exist "$CACHEDIR/$KAWPOW" "https://raw.githubusercontent.com/Meowcoin-Foundation/electrum-meowcoin-wheels/main/$KAWPOW"
 verify_hash "$CACHEDIR/$KAWPOW" "dfef28523674c3592df91eefecd7826e65c3bf90a95ec9e2fa4cb36027fa975a"
 download_if_not_exist "$CACHEDIR/$MEOWPOW" "https://raw.githubusercontent.com/Meowcoin-Foundation/electrum-meowcoin-wheels/main/$MEOWPOW"
-verify_hash "$CACHEDIR/$MEOWPOW" "f28ec5c6f3345f4d95dcaac0da022d5c349f93a88ffe71e25d9f0a9ffa6e81dd"
+verify_hash "$CACHEDIR/$MEOWPOW" "bb8c0e10445031fd5a17641c57418774a10d9af1a2407e24bc6a8300f6a0708b"
 
 $WINE_PYTHON -m pip install --no-warn-script-location --cache-dir "$WINE_PIP_CACHE_DIR" "$CACHEDIR/$X16R"
+$WINE_PYTHON -m pip install --no-warn-script-location --cache-dir "$WINE_PIP_CACHE_DIR" "$CACHEDIR/$X16RV2"
 $WINE_PYTHON -m pip install --no-warn-script-location --cache-dir "$WINE_PIP_CACHE_DIR" "$CACHEDIR/$KAWPOW"
 $WINE_PYTHON -m pip install --no-warn-script-location --cache-dir "$WINE_PIP_CACHE_DIR" "$CACHEDIR/$MEOWPOW"
 

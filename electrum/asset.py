@@ -21,7 +21,7 @@ from .util import ByteReader
 MAX_NAME_LENGTH = 32
 MAX_CHANNEL_NAME_LENGTH = 12
 MIN_ASSET_LENGTH = 3
-MAX_VERIFIER_STING_LENGTH = 0x4c - 1
+MAX_VERIFIER_STRING_LENGTH = 0x4c - 1
 MAX_ASSET_DIVISIONS = 8
 
 DEFAULT_ASSET_AMOUNT_MAX = TOTAL_COIN_SUPPLY_LIMIT_IN_BTC
@@ -65,7 +65,7 @@ _QUALIFIER_INDICATOR = r'^[#][A-Z0-9._]{3,}$'
 _SUB_QUALIFIER_INDICATOR = r'^#[A-Z0-9._]+\/#[A-Z0-9._]+$'
 _RESTRICTED_INDICATOR = r'^[\$][A-Z0-9._]{3,}$'
 
-_BAD_NAMES = '^MEWC$|^RAVEN$|^MEOWCOIN$|^RVNS$|^RAVENS$|^MEOWCOINS$|^#RVN$|^#RAVEN$|^#MEOWCOIN$|^#MEWS$|^#RAVENS$|^#MEOWCOINS$'
+_BAD_NAMES = '^MEWC$|^MEOWCOIN$|^MEOWCOINCOIN$|^#MEWC$|^#MEOWCOIN$|^#MEOWCOINCOIN$'
 
 def _isMatchAny(symbol: str, badMatches: Sequence[str]) -> bool:
     return any((re.match(x, symbol) for x in badMatches))
@@ -278,7 +278,7 @@ def generate_transfer_script_from_base(asset: str, amount: int, base_script: str
     return base_script + _asset_portion_of_transfer_script(asset, amount, memo=memo)
 
 def generate_verifier_tag(verifier_string: str) -> str:
-    assert len(verifier_string) <= MAX_VERIFIER_STING_LENGTH
+    assert len(verifier_string) <= MAX_VERIFIER_STRING_LENGTH
     asset_data = f'{int_to_hex(len(verifier_string))}{verifier_string.encode().hex()}'
     return construct_script([opcodes.OP_ASSET, opcodes.OP_RESERVED, asset_data])
 

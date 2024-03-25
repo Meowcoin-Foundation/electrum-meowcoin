@@ -14,7 +14,9 @@ jsonpatch
 dnspython>=2.0
 
 x16r_hash @ git+https://github.com/brian112358/x16r_hash@d79211ee8b5d86a9709caefded79f318a1d9f3a8
+x16rv2_hash @ git+https://github.com/RavenCommunity/x16rv2_hash@f8a9ef9a185b4c900adea4628be9b08aaab343ba
 kawpow @ git+https://github.com/kralverde/cpp-kawpow@52cceb9d896a194ea21463f0cfbce754b8635944
+meowpow @ git+https://github.com/Meowcoin-Foundation/cpp-meowpow@fb738b9fa8ed429db07f57381cc96fc57051b205
 
 ipfs-car-decoder==0.1.1 
 multiformats==0.3.1.post4

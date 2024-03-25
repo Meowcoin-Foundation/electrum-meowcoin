@@ -1,9 +1,16 @@
 {
-    "173.212.231.94": {
+    "meowelectrum.xyz": {
+      "pruning": "-",
+      "s": "50002",
+      "t": "50001",
+      "version": "1.11"
+    },
+    "meowcoinelectrum.xyz": {
       "pruning": "-",
       "s": "50002",
       "t": "50001",
       "version": "1.11"
     }
+
 }
   

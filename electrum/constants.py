@@ -130,8 +130,8 @@ class MeowcoinMainnet(AbstractNet):
     MeowpowActivationTS = 1710799200
     nDGWActivationBlock = 373
 
-    DEFAULT_MESSAGE_CHANNELS = ['ELECTRUM_MEOWCOIN~notification']
-    ASSET_PREFIX = b'mewc'
+    DEFAULT_MESSAGE_CHANNELS = ['ELECTRUM_MEOWCOIN~NOTIFICATION']
+    ASSET_PREFIX = b'rvn'
     SHORT_NAME = 'MEWC'
     LONG_NAME = 'Meowcoin'
 
@@ -245,18 +245,17 @@ class MeowcoinTestnet(AbstractNet):
     )
 
     BURN_ADDRESSES = BurnAddresses(
-        IssueAssetBurnAddress='n1issueAssetXXXXXXXXXXXXXXXXWdnemQ',
-        ReissueAssetBurnAddress='n1ReissueAssetXXXXXXXXXXXXXXWG9NLd',
-        IssueSubAssetBurnAddress='n1issueSubAssetXXXXXXXXXXXXXbNiH6v',
-        IssueUniqueAssetBurnAddress='n1issueUniqueAssetXXXXXXXXXXS4695i',
-        IssueMsgChannelAssetBurnAddress='n1issueMsgChanneLAssetXXXXXXT2PBdD',
-        IssueQualifierAssetBurnAddress='n1issueQuaLifierXXXXXXXXXXXXUysLTj',
-        IssueSubQualifierAssetBurnAddress='n1issueSubQuaLifierXXXXXXXXXYffPLh',
-        IssueRestrictedAssetBurnAddress='n1issueRestrictedXXXXXXXXXXXXZVT9V',
-        AddNullQualifierTagBurnAddress='n1addTagBurnXXXXXXXXXXXXXXXXX5oLMH',
-        GlobalBurnAddress='n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP'
+        IssueAssetBurnAddress='MCissueAssetXXXXXXXXXXXXXXXXa1oUfD',
+        ReissueAssetBurnAddress='MCReissueAssetXXXXXXXXXXXXXXUdjigq',
+        IssueSubAssetBurnAddress='MCissueSubAssetXXXXXXXXXXXXXbCnNFk',
+        IssueUniqueAssetBurnAddress='MCissueUniqueAssetXXXXXXXXXXSVUgF5',
+        IssueMsgChannelAssetBurnAddress='MCissueMsgChanneLAssetXXXXXXUe6Pvr',
+        IssueQualifierAssetBurnAddress='MCissueQuaLifierXXXXXXXXXXXXWLyvs5',
+        IssueSubQualifierAssetBurnAddress='MCissueSubQuaLifierXXXXXXXXXVHmaXW',
+        IssueRestrictedAssetBurnAddress='MCissueRestrictedXXXXXXXXXXXXfEYLU',
+        AddNullQualifierTagBurnAddress='MCaddTagBurnXXXXXXXXXXXXXXXXUrKr7b',
+        GlobalBurnAddress='MCBurnXXXXXXXXXXXXXXXXXXXXXXUkdzqy'
     )
-
 
 def all_subclasses(cls):
     """Return all (transitive) subclasses of cls."""
