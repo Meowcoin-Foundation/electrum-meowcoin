@@ -24,7 +24,7 @@ class UpdateCheck(QDialog, Logger):
     download_url = "https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
-        "RPuQNvDVBC5Q4fXKyfYLjrunbyqiEYckP5",  # kralverde since ravencoin fork
+        "MJ9YrxCZh77DteDa7yZSMpEDpgVSzJ55JZ",  # CraigD
     )
 
     def __init__(self, *, latest_version=None):

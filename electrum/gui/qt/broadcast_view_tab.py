@@ -1,13 +1,13 @@
 import enum
 from typing import TYPE_CHECKING
 
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QBrush
 from PyQt5.QtCore import Qt, pyqtSignal, QItemSelectionModel, QPoint
 from PyQt5.QtWidgets import (QAbstractItemView, QWidget, QHBoxLayout, QVBoxLayout, QToolButton, QMenu,
                              QLineEdit, QScrollArea, QLabel)
 
 from .my_treeview import MyTreeView, MyMenu
-from .util import IPFSViewer, read_QIcon, EnterButton, MessageBoxMixin, QHSeperationLine, AutoResizingTextEdit
+from .util import IPFSViewer, read_QIcon, EnterButton, MessageBoxMixin, QHSeperationLine, AutoResizingTextEdit, qt_event_listener, QtEventListener, ColorScheme
 
 from electrum.asset import get_error_for_asset_typed, AssetType
 from electrum.bitcoin import base_decode
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from .main_window import ElectrumWindow
 
 
-class BroadcastAssetList(MyTreeView):
+class BroadcastAssetList(MyTreeView, QtEventListener):
 
     class Columns(MyTreeView.BaseColumnsEnum):
         ASSET = enum.auto()
@@ -57,13 +57,19 @@ class BroadcastAssetList(MyTreeView):
             self.last_selected_asset = asset = m.data(self.ROLE_ASSET_STR)
             parent.update_asset_trigger.emit(asset)
 
+            if asset in self.new_broadcasts:
+                self.new_broadcasts.discard(asset)
+                self.update(force=True)
+
         self.selectionModel().selectionChanged.connect(selectionChange)
+        self.new_broadcasts = set()
+        self.register_callbacks()
     
 
     @profiler(min_threshold=0.05)
-    def update(self):
+    def update(self, force=False):
         assets = self.wallet.adb.get_broadcasts_to_watch()
-        if assets == self.current_assets:
+        if assets == self.current_assets and not force:
             return
         self.model().clear()
         self.update_headers(self.__class__.headers)
@@ -72,6 +78,8 @@ class BroadcastAssetList(MyTreeView):
             labels[self.Columns.ASSET] = asset
             row_item = [QStandardItem(x) for x in labels]
             row_item[self.Columns.ASSET].setData(asset, self.ROLE_ASSET_STR)
+            if asset in self.new_broadcasts:
+                row_item[self.Columns.ASSET].setForeground(QBrush(ColorScheme.YELLOW.as_color()))
             self.model().insertRow(idx, row_item)
             self.refresh_row(asset, idx)
             if asset == self.last_selected_asset:
@@ -79,6 +87,12 @@ class BroadcastAssetList(MyTreeView):
         self.current_assets = assets
         self.filter()
 
+    @qt_event_listener
+    def on_event_adb_added_verified_broadcast(self, *args):
+        asset = args[1]
+        if asset not in self.new_broadcasts:
+            self.new_broadcasts.add(asset)
+            self.update(force=True)
 
     def refresh_row(self, key: str, row: int) -> None:
         assert row is not None
@@ -219,11 +233,9 @@ class ViewBroadcastTab(QWidget, Logger, MessageBoxMixin):
         self.has_new = False
 
         self.window = window
-
         hbox = QHBoxLayout()
         vbox = QVBoxLayout()
         self.asset_list = BroadcastAssetList(self, window)
-
         vbox.addWidget(self.asset_list)
         hbox.addLayout(vbox)
         vbox = QVBoxLayout()
@@ -231,10 +243,8 @@ class ViewBroadcastTab(QWidget, Logger, MessageBoxMixin):
         vbox.addWidget(self.broadcast_list, stretch=1)
 
         self.ipfs_viewer = IPFSViewer(window)
-
         self.source_seperator = QHSeperationLine()
         self.source_seperator.setVisible(False)
-
         self.main_source_label = QLabel(_('Broadcast Source'))
         self.main_source_label.setVisible(False)
         self.main_source_txid = AutoResizingTextEdit()
@@ -311,7 +321,6 @@ class ViewBroadcastTab(QWidget, Logger, MessageBoxMixin):
         self.update_associated_data_trigger.connect(lambda x, y, z: self.switch_associcated_data(x, y, z))
 
         self.searchable_list = SearchableListGrouping(self.asset_list, self.broadcast_list)
-
 
     def _show_source_tx(self, txid_widget):
         txid = txid_widget.toPlainText()

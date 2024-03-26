@@ -1068,6 +1068,7 @@ def block_explorer_URL(config: "SimpleConfig", kind: str, item: str) -> Optional
 
 
 ipfs_explorers = {
+    "ipfs1.mewccrypto.com": ("https://ipfs1.mewccrypto.com/", {"ipfs": "ipfs/"}),
     "cloudflare-ipfs.com": ("https://cloudflare-ipfs.com/", {"ipfs": "ipfs/"}),
     "ipfs.io": ("https://ipfs.io/", {"ipfs": "ipfs/"}),
     "ipfs.chaintek.net": ("https://ipfs.chaintek.net/", {"ipfs": "ipfs/"}),

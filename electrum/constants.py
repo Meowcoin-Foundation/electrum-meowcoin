@@ -130,7 +130,7 @@ class MeowcoinMainnet(AbstractNet):
     MeowpowActivationTS = 1710799200
     nDGWActivationBlock = 373
 
-    DEFAULT_MESSAGE_CHANNELS = ['ELECTRUM_MEOWCOIN~NOTIFICATION']
+    DEFAULT_MESSAGE_CHANNELS = ['MEOWCOIN_ELECTRUM~notification']
     ASSET_PREFIX = b'rvn'
     SHORT_NAME = 'MEWC'
     LONG_NAME = 'Meowcoin'

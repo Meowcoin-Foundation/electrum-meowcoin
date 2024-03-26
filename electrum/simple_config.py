@@ -931,7 +931,7 @@ class SimpleConfig(Logger):
     GUI_NAME = ConfigVar('gui', default='qt', type_=str)
     GUI_LAST_WALLET = ConfigVar('gui_last_wallet', default=None, type_=str)
 
-    GUI_QT_COLOR_THEME = ConfigVar('qt_gui_color_theme', default='default', type_=str)
+    GUI_QT_COLOR_THEME = ConfigVar('qt_gui_color_theme', default='dark', type_=str)
     GUI_QT_DARK_TRAY_ICON = ConfigVar('dark_icon', default=False, type_=bool)
     GUI_QT_WINDOW_IS_MAXIMIZED = ConfigVar('is_maximized', default=False, type_=bool)
     GUI_QT_HIDE_ON_STARTUP = ConfigVar('hide_gui', default=False, type_=bool)

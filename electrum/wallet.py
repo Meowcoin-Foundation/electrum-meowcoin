@@ -1927,7 +1927,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
             fixed_inputs = []
         if not coins and not fixed_inputs:  # any bitcoin tx must have at least 1 input by consensus
             raise NotEnoughFunds()
-        if any([c.already_has_some_signatures() for c in coins]):
+        if any([c.already_has_some_signatures() for c in itertools.chain(coins, fixed_inputs)]):
             raise Exception("Some inputs already contain signatures!")
 
         # prevent side-effect with '!'
@@ -1977,7 +1977,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
         if fee is None and self.config.fee_per_kb() is None:
             raise NoDynamicFeeEstimates()
 
-        for item in coins:
+        for item in itertools.chain(coins, fixed_inputs):
             self.add_input_info(item)
 
         # Fee estimator
@@ -2080,7 +2080,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
             sendable = sum(map(lambda c: c.value_sats(), base_coins))
             for (_,i) in i_max[None]:
                 outputs[i].value = 0
-            tx = PartialTransaction.from_io(list(coins), list(outputs))
+            tx = PartialTransaction.from_io(list(base_coins), list(outputs))
             fee = fee_estimator(tx.estimated_size())
             amount = sendable - tx.output_value() - fee
             if amount < 0:
@@ -2093,7 +2093,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
 
             (x,i) = i_max[None][-1]
             outputs[i].value += (amount - distr_amount)
-            tx = PartialTransaction.from_io(list(coins), list(outputs))
+            tx = PartialTransaction.from_io(list(base_coins), list(outputs))
 
         assert not any(isinstance(output.value, str) for output in tx.outputs())
         assert not any(isinstance(output.asset_aware_value(), str) for output in tx.outputs())

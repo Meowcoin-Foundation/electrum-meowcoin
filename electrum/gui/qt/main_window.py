@@ -107,7 +107,9 @@ if TYPE_CHECKING:
     from electrum.simple_config import ConfigVarWithConfig
     from . import ElectrumGui
 
+
 LN_NUM_PAYMENT_ATTEMPTS = 10
+
 
 class StatusBarButton(QToolButton):
     # note: this class has a custom stylesheet applied in stylesheet_patcher.py

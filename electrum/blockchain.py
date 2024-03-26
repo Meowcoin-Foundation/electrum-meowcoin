@@ -114,6 +114,10 @@ def hash_header(header: dict) -> str:
         return hash_raw_header_kawpow(serialize_header(header))
     elif header['timestamp'] >= constants.net.MeowpowActivationTS:
         return hash_raw_header_meowpow(serialize_header(header))
+    elif header['timestamp'] >= constants.net.X16Rv2ActivationTS:
+        hdr = serialize_header(header)[:80 * 2]
+        h = hash_raw_header_v2(hdr)
+        return h
     else:
         hdr = serialize_header(header)[:80 * 2]
         h = hash_raw_header_v1(hdr)
