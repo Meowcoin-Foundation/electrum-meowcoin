@@ -122,13 +122,13 @@ class MeowcoinMainnet(AbstractNet):
     CHECKPOINTS = read_json('checkpoints.json', [])
     DGW_CHECKPOINTS = read_json('checkpoints_dgw.json', [])
     DGW_CHECKPOINTS_SPACING = 2016
-    DGW_CHECKPOINTS_START = 168 * DGW_CHECKPOINTS_SPACING  #338_688, DGW starts at 338_778
+    DGW_CHECKPOINTS_START = 1 * DGW_CHECKPOINTS_SPACING 
 
     X16Rv2ActivationTS = 1569945600
     KawpowActivationTS = 1662493424
-    KawpowActivationHeight = 373
+    KawpowActivationHeight = 1
     MeowpowActivationTS = 1710799200
-    nDGWActivationBlock = 373
+    nDGWActivationBlock = 1
 
     DEFAULT_MESSAGE_CHANNELS = ['MEOWCOIN_ELECTRUM~notification']
     ASSET_PREFIX = b'rvn'
