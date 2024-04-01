@@ -1728,7 +1728,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         sb.setFixedHeight(sb_height)
 
         # remove border of all items in status bar
-        self.setStyleSheet("QStatusBar::item { border: 0px;} ")
+        #self.setStyleSheet("QStatusBar::item { border: 0px;} ")
 
         self.search_box = QLineEdit()
         self.search_box.textChanged.connect(self.do_search)

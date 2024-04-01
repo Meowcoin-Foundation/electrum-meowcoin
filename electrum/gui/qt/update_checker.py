@@ -20,7 +20,7 @@ from electrum._vendor.distutils.version import StrictVersion
 
 
 class UpdateCheck(QDialog, Logger):
-    url = "https://raw.githubusercontent.com/Meowcoin-Foundation/electrum-meowcoin/main/check-version.json"
+    url = "https://raw.githubusercontent.com/Meowcoin-Foundation/electrum-meowcoin/master/check-version.json"
     download_url = "https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases"
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (

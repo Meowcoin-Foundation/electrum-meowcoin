@@ -114,7 +114,7 @@ class MeowcoinMainnet(AbstractNet):
     ADDRTYPE_P2SH = 122
     ADDRTYPE_P2SH_ALT = 122
     MATURE = 60
-    SEGWIT_HRP = "rc"
+    SEGWIT_HRP = "mc"
     BOLT11_HRP = SEGWIT_HRP
     GENESIS = "000000edd819220359469c54f2614b5602ebc775ea67a64602f354bdaa320f70"
     DEFAULT_PORTS = {'t': '50001', 's': '50002'}
@@ -131,6 +131,7 @@ class MeowcoinMainnet(AbstractNet):
     nDGWActivationBlock = 1
 
     DEFAULT_MESSAGE_CHANNELS = ['MEOWCOIN_ELECTRUM~notification']
+    #ASSET_PREFIX = b'rvn'
     ASSET_PREFIX = b'rvn'
     SHORT_NAME = 'MEWC'
     LONG_NAME = 'Meowcoin'
