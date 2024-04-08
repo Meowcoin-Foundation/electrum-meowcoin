@@ -40,7 +40,7 @@ except Exception as e:
         "Error: Could not import PyQt5 on Linux systems, "
         "you may try 'sudo apt-get install python3-pyqt5'") from e
 
-from PyQt5.QtGui import QGuiApplication
+from PyQt5.QtGui import QGuiApplication, QFontDatabase
 from PyQt5.QtWidgets import (QApplication, QSystemTrayIcon, QWidget, QMenu,
                              QMessageBox)
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer, Qt
@@ -101,7 +101,6 @@ class QElectrumApplication(QApplication):
     update_status_signal = pyqtSignal()
     update_fiat_signal = pyqtSignal()
     alias_received_signal = pyqtSignal()
-
 
 
 class ElectrumGui(BaseElectrumGui, Logger):
@@ -443,6 +442,9 @@ class ElectrumGui(BaseElectrumGui, Logger):
         signal.signal(signal.SIGINT, lambda *args: self.app.quit())
         # hook for crash reporter
         Exception_Hook.maybe_setup(config=self.config)
+        QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), '../fonts/PixeloidSans.otf').replace(os.sep, '/'))       
+        QFontDatabase.addApplicationFont(os.path.join(os.path.dirname(__file__), '../fonts/PixeloidSans-Bold.otf').replace(os.sep, '/'))       
+
         # start network, and maybe show first-start network-setup
         try:
             self.init_network()

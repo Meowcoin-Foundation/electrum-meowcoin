@@ -31,6 +31,7 @@ QWidget { /* Set default style for QWidget, override in following statements */
     selection-color: #fff;
     selection-background-color: #818181;
     font-family:Pixeloid Sans;
+    font-size: 15px;
 }
 
 QGroupBox {

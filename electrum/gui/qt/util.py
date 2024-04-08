@@ -1050,16 +1050,16 @@ class ColorSchemeItem:
 
 
 class ColorScheme:
-    dark_scheme = False
+    dark_scheme = True
 
     GREEN = ColorSchemeItem("#8af296", "#8af296")
     YELLOW = ColorSchemeItem("#897b2a", "#ffff00")
     RED = ColorSchemeItem("#7F0000", "#f18c8c")
     BLUE = ColorSchemeItem("#123b7c", "#8cb3f2")
-    LIGHTBLUE = ColorSchemeItem("#181818", "#d0f0ff")
+    LIGHTBLUE = ColorSchemeItem("#5C5E6E", "#d0f0ff")
     DEFAULT = ColorSchemeItem("#0F0F0F", "white")
-    GRAY = ColorSchemeItem("gray", "gray")
-    LIGHT_GRAY = ColorSchemeItem("#303044", "#f0f0f0")
+    GRAY = ColorSchemeItem("#5C5E6E", "#5C5E6E")
+    LIGHT_GRAY = ColorSchemeItem("#3F3F3F", "#f0f0f0")
 
     @staticmethod
     def has_dark_background(widget):
