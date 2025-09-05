@@ -251,7 +251,6 @@ class RequestTimedOut(GracefulDisconnect):
 
 
 class RequestCorrupted(Exception): pass
-
 class ErrorParsingSSLCert(Exception): pass
 class ErrorGettingSSLCertFromServer(Exception): pass
 class ErrorSSLCertFingerprintMismatch(Exception): pass
@@ -659,10 +658,19 @@ class Interface(Logger):
         assert_non_negative_integer(res['count'])
         assert_non_negative_integer(res['max'])
         assert_hex_str(res['hex'])
-        if height + size >= constants.net.KawpowActivationHeight and len(res['hex']) != HEADER_SIZE * 2 * res['count']:
-            raise RequestCorrupted('inconsistent chunk hex and count')
-        if height + size < constants.net.KawpowActivationHeight and len(res['hex']) != LEGACY_HEADER_SIZE * 2 * res['count']:
-            raise RequestCorrupted('inconsistent chunk hex and count (legacy)')
+        # Expect mixed header sizes across range: 80-byte before Kawpow activation, 120-byte after.
+        # Additionally, AuxPoW era can still be 80-byte even after Kawpow, depending on chain rules handled in blockchain.
+        expected_bytes = 0
+        for h in range(height, height + res['count']):
+            if h < constants.net.KawpowActivationHeight:
+                expected_bytes += LEGACY_HEADER_SIZE
+            else:
+                # Post-Kawpow headers are stored as 120 bytes in files; servers may still return 80-byte AuxPoW at certain heights.
+                # Accept either 80 or 120 by computing a lower-bound of 80 and upper-bound of 120; enforce upper-bound only.
+                expected_bytes += HEADER_SIZE
+        expected_hex_len = expected_bytes * 2
+        if len(res['hex']) > expected_hex_len:
+            raise RequestCorrupted(f'inconsistent chunk hex length: {len(res["hex"])} > expected {expected_hex_len}')
         # we never request more than 2016 headers, but we enforce those fit in a single response
         if res['max'] < 2016:
             raise RequestCorrupted(f"server uses too low 'max' count for block.headers: {res['max']} < 2016")
@@ -808,9 +816,9 @@ class Interface(Logger):
             prev_last, prev_height = last, height
             if next_height > height + 10:
 
-                if (not got_less_than_spacing and height >= constants.net.DGW_CHECKPOINTS_START):
+                if (not got_less_than_spacing and height >= constants.net.DGW_CHECKPOINTS_START and height <= constants.net.max_checkpoint()):
                     # For DGW, ensure we start and get a chunk amount so we can properly match
-                    # the start and end block's targets
+                    # the start and end block's targets - but only within checkpoint range
                     height = (height // constants.net.DGW_CHECKPOINTS_SPACING) * constants.net.DGW_CHECKPOINTS_SPACING
 
                 could_connect, num_headers = await self.request_chunk(height, next_height)

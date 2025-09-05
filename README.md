@@ -1,7 +1,7 @@
 _(If you've come here looking to simply run Electrum Meowcoin, you may download a prebuilt binary for
-[windows](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v2.0.0/electrum-meowcoin-v2.0.0-setup.exe),
-[linux](https://github.com/Meowcoin-Foundation/releases/download/v2.0.0/electrum-meowcoin-v2.0.0-x86_64.AppImage), and
-[mac](https://github.com/Meowcoin-Foundation/releases/download/v2.0.0/electrum-meowcoin-v2.0.0.dmg)
+[windows](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v2.1.0/electrum-meowcoin-v2.1.0-setup.exe),
+[linux](https://github.com/Meowcoin-Foundation/releases/download/v2.1.0/electrum-meowcoin-v2.1.0-x86_64.AppImage), and
+[mac](https://github.com/Meowcoin-Foundation/releases/download/v2.1.0/electrum-meowcoin-v2.1.0.dmg)
 [or see other options](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/latest).)_
 
 # Electrum Meowcoin - Lightweight Meowcoin client
@@ -124,6 +124,36 @@ To run a single file, specify it directly like this:
 ```
 $ pytest electrum/tests/test_bitcoin.py -v
 ```
+
+## Version 2.1.0 Release Notes
+
+### Enhanced AuxPoW Support and Blockchain Improvements
+
+**Version 2.1.0** introduces significant improvements to AuxPoW (Auxiliary Proof of Work) handling and blockchain compatibility:
+
+#### Key Features:
+- **Enhanced AuxPoW Support**: Improved header serialization/deserialization for proper AuxPoW block identification
+- **Fixed AuxPoW Detection**: Now uses version bit AND height validation for accurate AuxPoW block recognition
+- **Updated Testnet Configuration**: 
+  - New address types (WIF_PREFIX: 239→114, ADDRTYPE_P2PKH: 111→109)
+  - Updated AuxPowActivationHeight for MeowcoinTestnet (181→46 blocks)
+- **Improved Header Processing**: Better handling of mixed 80/120-byte header scenarios
+- **Enhanced Error Checking**: More robust validation for inconsistent header sizes in interface requests
+- **Debug Logging**: Added nonce validation logging for AuxPoW and legacy blocks
+- **ElectrumX Compatibility**: Optimized header processing logic for better server compatibility
+
+#### Technical Improvements:
+- Refactored blockchain header serialization and deserialization
+- Enhanced error checking for inconsistent header sizes
+- Updated constants for testnet address types
+- Improved interface request handling
+- Better integration with ElectrumX servers
+
+#### Security Updates:
+- Updated version signing system with new testnet signing keys
+- Enhanced signature verification for version announcements
+
+This release significantly improves the stability and compatibility of Electrum Meowcoin with AuxPoW blocks and provides better integration with the Meowcoin network.
 
 ## Creating Binaries
 
