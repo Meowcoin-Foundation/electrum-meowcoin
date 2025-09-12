@@ -128,6 +128,7 @@ class MeowcoinMainnet(AbstractNet):
     KawpowActivationTS = 1662493424
     KawpowActivationHeight = 1
     MeowpowActivationTS = 1710799200
+    AuxPowActivationHeight = 1614560
     nDGWActivationBlock = 1
 
     DEFAULT_MESSAGE_CHANNELS = ['MEOWCOIN_ELECTRUM~notification']
@@ -189,14 +190,14 @@ class MeowcoinTestnet(AbstractNet):
     LN_DNS_SEEDS = [
     ]
     TESTNET = True
-    WIF_PREFIX = 239
-    ADDRTYPE_P2PKH = 111
-    ADDRTYPE_P2SH = 196
-    ADDRTYPE_P2SH_ALT = 196
+    WIF_PREFIX = 114
+    ADDRTYPE_P2PKH = 109
+    ADDRTYPE_P2SH = 124
+    ADDRTYPE_P2SH_ALT = 124
     MATURE = 60
     SEGWIT_HRP = "tc"
     BOLT11_HRP = SEGWIT_HRP
-    GENESIS = "000000ecfc5e6324a079542221d00e10362bdc894d56500c414060eea8a3ad5a"
+    GENESIS = "000000eaab417d6dfe9bd75119972e1d07ecfe8ff655bef7c2acb3d9a0eeed81"
     DEFAULT_PORTS = {'t': '51001', 's': '51002'}
     DEFAULT_SERVERS = read_json('servers_testnet.json', {})
     CHECKPOINTS = []
@@ -205,9 +206,10 @@ class MeowcoinTestnet(AbstractNet):
     DGW_CHECKPOINTS_START = 0
 
     X16Rv2ActivationTS = 1567533600
-    KawpowActivationTS = 1585159201
-    MeowpowActivationTS = 1585159200
+    KawpowActivationTS = 1661833868
+    MeowpowActivationTS = 1707354000
     KawpowActivationHeight = 1
+    AuxPowActivationHeight = 46
     nDGWActivationBlock = 1
 
     DEFAULT_MESSAGE_CHANNELS = []

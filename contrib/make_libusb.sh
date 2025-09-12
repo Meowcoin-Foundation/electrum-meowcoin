@@ -5,7 +5,7 @@ LIBUSB_VERSION="4239bc3a50014b8e6a5a2a59df1fff3b7469543b"
 
 set -e
 
-. $(dirname "$0")/build_tools_util.sh || (echo "Could not source build_tools_util.sh" && exit 1)
+. "$(dirname "$0")/build_tools_util.sh" || (echo "Could not source build_tools_util.sh" && exit 1)
 
 here="$(dirname "$(realpath "$0" 2> /dev/null || grealpath "$0")")"
 CONTRIB="$here"

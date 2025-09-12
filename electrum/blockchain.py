@@ -63,7 +63,9 @@ class NotEnoughHeaders(Exception):
 
 def serialize_header(header_dict: dict) -> str:
     ts = header_dict['timestamp']
-    if ts >= constants.net.KawpowActivationTS:
+    # Check if this is an AuxPoW header (missing nheight field)
+    is_auxpow = 'nheight' not in header_dict
+    if ts >= constants.net.KawpowActivationTS and not is_auxpow:
         s = int_to_hex(header_dict['version'], 4) \
             + rev_hex(header_dict['prev_block_hash']) \
             + rev_hex(header_dict['merkle_root']) \
@@ -96,12 +98,31 @@ def deserialize_header(s: bytes, height: int) -> dict:
          'merkle_root': hash_encode(s[36:68]),
          'timestamp': int(hash_encode(s[68:72]), 16),
          'bits': int(hash_encode(s[72:76]), 16)}
-    if h['timestamp'] >= constants.net.KawpowActivationTS:
+    
+    # Handle different header types based on length and version bit
+    if len(s) == HEADER_SIZE:  # 120 bytes - KawPow/MeowPow
         h['nheight'] = int(hash_encode(s[76:80]), 16)
         h['nonce'] = int(hash_encode(s[80:88]), 16)
         h['mix_hash'] = hash_encode(s[88:120])
-    else:
-        h['nonce'] = int(hash_encode(s[76:80]), 16)
+    else:  # 80 bytes - could be AuxPOW or legacy
+        # AuxPOW blocks are identified by version bit AND height
+        version_int = h['version']
+        is_auxpow = bool(version_int & (1 << 8)) and height >= constants.net.AuxPowActivationHeight
+        if is_auxpow:
+            # This is an AuxPOW block (80 bytes) - nonce is at position 76-80 (4 bytes)
+            nonce_bytes = s[76:80]
+            h['nonce'] = int(hash_encode(nonce_bytes), 16)
+            # Debug: log nonce value for AuxPoW blocks
+            if h['nonce'] > 0xFFFFFFFF:
+                print(f"DEBUG: AuxPoW nonce too large: {h['nonce']} (hex: {hash_encode(nonce_bytes)})")
+        else:
+            # Legacy block (80 bytes) - nonce is at position 76-80 (4 bytes)
+            nonce_bytes = s[76:80]
+            h['nonce'] = int(hash_encode(nonce_bytes), 16)
+            # Debug: log nonce value for legacy blocks
+            if h['nonce'] > 0xFFFFFFFF:
+                print(f"DEBUG: Legacy nonce too large: {h['nonce']} (hex: {hash_encode(nonce_bytes)})")
+    
     h['block_height'] = height
     return h
 
@@ -110,7 +131,13 @@ def hash_header(header: dict) -> str:
         return '0' * 64
     if header.get('prev_block_hash') is None:
         header['prev_block_hash'] = '00' * 32
-    if header['timestamp'] >= constants.net.KawpowActivationTS and header['timestamp'] < constants.net.MeowpowActivationTS:
+    # AuxPoW: use version bit to decide, gated by activation height
+    height = header.get('block_height', 0)
+    version_int = int(header.get('version', 0))
+    is_auxpow = bool(version_int & (1 << 8)) and height >= constants.net.AuxPowActivationHeight
+    if is_auxpow:
+        return hash_raw_header_auxpow(serialize_header(header))
+    elif header['timestamp'] >= constants.net.KawpowActivationTS and header['timestamp'] < constants.net.MeowpowActivationTS:
         return hash_raw_header_kawpow(serialize_header(header))
     elif header['timestamp'] >= constants.net.MeowpowActivationTS:
         return hash_raw_header_meowpow(serialize_header(header))
@@ -164,6 +191,21 @@ def meowpow_hash(hdr_bin):
 def hash_raw_header_meowpow(header: str) -> str:
     final_hash = hash_encode(meowpow_hash(bfh(header)))
     return final_hash
+
+
+def hash_raw_header_auxpow(header: str) -> str:
+    """Hash for AuxPOW blocks using Scrypt-1024-1-1-256 on first 80 bytes"""
+    import hashlib
+    header_bytes = bfh(header)[:80]  # Use only first 80 bytes for AuxPOW
+    # Scrypt-1024-1-1-256 (N=1024, r=1, p=1, dklen=32)
+    # Match server implementation: return raw bytes, then encode
+    try:
+        scrypt_hash = hashlib.scrypt(header_bytes, salt=header_bytes, n=1024, r=1, p=1, dklen=32)
+    except AttributeError:
+        # Fallback if scrypt not available - use double_sha256 like server
+        from .crypto import sha256d
+        scrypt_hash = sha256d(header_bytes)
+    return hash_encode(scrypt_hash)
 
 
 # key: blockhash hex at forkpoint
@@ -403,12 +445,16 @@ class Blockchain(Logger):
         prev_hash = self.get_hash(start_height - 1)
         headers = {}
         while p < len(data):
-            if s < constants.net.KawpowActivationHeight:
-                raw = data[p:p + LEGACY_HEADER_SIZE]
-                p += LEGACY_HEADER_SIZE
+            # Determine expected header length *before* slicing so we stay aligned
+            if s >= constants.net.KawpowActivationHeight:
+                header_len = HEADER_SIZE  # post-Kawpow headers always 120 bytes
             else:
-                raw = data[p:p + HEADER_SIZE]
-                p += HEADER_SIZE
+                version_int = int.from_bytes(data[p:p+4], byteorder='little', signed=False)
+                is_auxpow = bool(version_int & (1 << 8)) and s >= constants.net.AuxPowActivationHeight
+                header_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
+
+            raw = data[p:p + header_len]
+            p += header_len
             try:
                 expected_header_hash = self.get_hash(s)
             except MissingHeader:
@@ -476,12 +522,19 @@ class Blockchain(Logger):
             p = 0
             s = start_height
             while p < len(chunk):
-                if s < constants.net.KawpowActivationHeight:
-                    r += chunk[p:p + LEGACY_HEADER_SIZE] + bytes(40)
-                    p += LEGACY_HEADER_SIZE
+                if s >= constants.net.KawpowActivationHeight:
+                    hdr_len = HEADER_SIZE
                 else:
-                    r += chunk[p:p + HEADER_SIZE]
-                    p += HEADER_SIZE
+                    version_int = int.from_bytes(chunk[p:p+4], byteorder='little', signed=False)
+                    is_auxpow = bool(version_int & (1 << 8)) and s >= constants.net.AuxPowActivationHeight
+                    hdr_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
+
+                if hdr_len == LEGACY_HEADER_SIZE:
+                    r += chunk[p:p + hdr_len] + bytes(40)  # pad to 120 for storage
+                else:
+                    r += chunk[p:p + hdr_len]
+
+                p += hdr_len
                 s += 1
             if len(r) % HEADER_SIZE != 0:
                 raise Exception('Header extension error')

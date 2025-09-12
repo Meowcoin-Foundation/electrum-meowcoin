@@ -25,6 +25,7 @@ class UpdateCheck(QDialog, Logger):
 
     VERSION_ANNOUNCEMENT_SIGNING_KEYS = (
         "MJ9YrxCZh77DteDa7yZSMpEDpgVSzJ55JZ",  # CraigD
+        "mAnMnMQH9ScJPkJr8g525iWrWshDZfog4i",  # Topper (testnet)
     )
 
     def __init__(self, *, latest_version=None):
