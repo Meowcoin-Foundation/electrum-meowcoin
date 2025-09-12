@@ -1,7 +1,7 @@
 _(If you've come here looking to simply run Electrum Meowcoin, you may download a prebuilt binary for
 [windows](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v2.1.0/electrum-meowcoin-v2.1.0-setup.exe),
-[linux](https://github.com/Meowcoin-Foundation/releases/download/v2.1.0/electrum-meowcoin-v2.1.0-x86_64.AppImage), and
-[mac](https://github.com/Meowcoin-Foundation/releases/download/v2.1.0/electrum-meowcoin-v2.1.0.dmg)
+[linux](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v2.1.0/electrum-meowcoin-v2.1.0-x86_64.AppImage), and
+[mac](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/download/v2.1.0/electrum-meowcoin-v2.1.0.dmg)
 [or see other options](https://github.com/Meowcoin-Foundation/electrum-meowcoin/releases/latest).)_
 
 # Electrum Meowcoin - Lightweight Meowcoin client
