@@ -43,18 +43,24 @@ if TYPE_CHECKING:
 
 _logger = get_logger(__name__)
 
-# Test if scrypt is available
+# Test if scrypt is available with EXACT parameters used for AuxPOW
 _SCRYPT_AVAILABLE = False
+_SCRYPT_ERROR = None
 try:
     import hashlib
-    # Test scrypt with dummy data
-    test_data = b'test' * 20
-    hashlib.scrypt(test_data, salt=test_data, n=1024, r=1, p=1, dklen=32)
-    _SCRYPT_AVAILABLE = True
-    _logger.info("hashlib.scrypt is AVAILABLE - AuxPOW hashing will work correctly")
+    # Test scrypt with EXACT parameters: 80-byte header, same as salt
+    test_header = b'\x00' * 80  # Simulate 80-byte header
+    test_result = hashlib.scrypt(test_header, salt=test_header, n=1024, r=1, p=1, dklen=32)
+    if len(test_result) == 32:
+        _SCRYPT_AVAILABLE = True
+        _logger.info("✅ hashlib.scrypt is AVAILABLE and WORKING - AuxPOW hashing will be correct")
+    else:
+        _SCRYPT_ERROR = f"scrypt returned {len(test_result)} bytes instead of 32"
+        _logger.error(f"❌ CRITICAL: hashlib.scrypt returned wrong length: {_SCRYPT_ERROR}")
 except Exception as e:
-    _logger.error(f"CRITICAL: hashlib.scrypt NOT available: {e}")
-    _logger.error("AuxPOW blocks will use SHA256 fallback (INCORRECT)")
+    _SCRYPT_ERROR = str(e)
+    _logger.error(f"❌ CRITICAL: hashlib.scrypt NOT available or failed: {e}")
+    _logger.error("⚠️  AuxPOW blocks will use SHA256 fallback (INCORRECT - will cause validation errors)")
 
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 KAWPOW_LIMIT = 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -229,18 +235,38 @@ def hash_raw_header_meowpow(header: str) -> str:
 def hash_raw_header_auxpow(header: str) -> str:
     """Hash for AuxPOW blocks using Scrypt-1024-1-1-256 on first 80 bytes"""
     import hashlib
-    header_bytes = bfh(header)[:80]  # Use only first 80 bytes for AuxPOW
+    
+    # Convert hex string to bytes
+    try:
+        header_bytes = bfh(header)[:80]  # Use only first 80 bytes for AuxPOW
+    except Exception as e:
+        _logger.error(f"ERROR converting header to bytes: {e}")
+        from .crypto import sha256d
+        return hash_encode(sha256d(b'\x00' * 80))
+    
     # Scrypt-1024-1-1-256 (N=1024, r=1, p=1, dklen=32)
     # Match server implementation: return raw bytes, then encode
+    
+    if not _SCRYPT_AVAILABLE:
+        _logger.warning(f"Scrypt not available during init, using SHA256 fallback for header")
+        from .crypto import sha256d
+        return hash_encode(sha256d(header_bytes))
+    
     try:
+        # CRITICAL: Use EXACT same parameters as server
         scrypt_hash = hashlib.scrypt(header_bytes, salt=header_bytes, n=1024, r=1, p=1, dklen=32)
+        if len(scrypt_hash) != 32:
+            raise ValueError(f"Scrypt returned {len(scrypt_hash)} bytes, expected 32")
         return hash_encode(scrypt_hash)
-    except (AttributeError, Exception) as e:
-        # CRITICAL: scrypt is REQUIRED for AuxPOW validation
-        # If scrypt is not available, we cannot validate AuxPOW blocks correctly
-        _logger.error(f"CRITICAL: hashlib.scrypt failed: {e}")
-        _logger.error(f"CRITICAL: Cannot validate AuxPOW blocks without scrypt - falling back to SHA256 (INCORRECT)")
-        # Fallback if scrypt not available - THIS IS INCORRECT but allows some operation
+    except Exception as e:
+        # Log the actual exception for debugging - this should NEVER happen if test passed
+        _logger.error(f"❌ CRITICAL: hashlib.scrypt FAILED during AuxPOW hash calculation:")
+        _logger.error(f"  Exception: {type(e).__name__}: {e}")
+        _logger.error(f"  Header length: {len(header_bytes)} bytes")
+        _logger.error(f"  Header (first 32 bytes): {header_bytes[:32].hex()}")
+        _logger.error(f"  Initial test showed scrypt working, but failed during actual use!")
+        _logger.error(f"  ⚠️ FALLING BACK TO SHA256 (WILL CAUSE VALIDATION FAILURES)")
+        # Fallback - THIS IS INCORRECT
         from .crypto import sha256d
         scrypt_hash = sha256d(header_bytes)
         return hash_encode(scrypt_hash)
