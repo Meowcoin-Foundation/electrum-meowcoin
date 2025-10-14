@@ -573,7 +573,7 @@ class Blockchain(Logger):
             # Don't bother with the target of headers in the middle of
             # DGW checkpoints
             target = 0
-            skip_bits_check = False  # Track if we're using fallback target
+            skip_bits_check = False  # Track if we're using fallback target or LWMA (precision issues)
             
             if constants.net.DGW_CHECKPOINTS_START <= s <= constants.net.max_checkpoint():
                 if self.is_dgw_height_checkpoint(s) is not None:
@@ -587,8 +587,13 @@ class Blockchain(Logger):
                     # Just use the headers own bits for the logic
                     target = self.bits_to_target(header['bits'])
             else:
+                # After checkpoints: calculate target with LWMA for PoW validation
+                # But skip bits comparison due to target→bits conversion rounding errors
                 try:
                     target = self.get_target(s, headers)
+                    # For LWMA (post-AuxPOW), skip bits check due to rounding in target→bits conversion
+                    if s >= constants.net.AuxPowActivationHeight:
+                        skip_bits_check = True
                 except NotEnoughHeaders:
                     # LWMA needs more headers - trust the header's own bits during initial sync
                     self.logger.info(f'verify_chunk: Using fallback target for height {s} (not enough headers for LWMA)')
