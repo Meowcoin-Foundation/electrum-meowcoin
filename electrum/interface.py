@@ -801,11 +801,23 @@ class Interface(Logger):
                 # another interface amended the blockchain
                 self.logger.info(f"skipping header {height}")
                 return False
-            _, height = await self.step(height, header)
-            # in the simple case, height == self.tip+1
-            if height <= self.tip:
-                await self.sync_until(height)
-            return True
+            
+            # CRITICAL FIX: Don't jump directly to tip if there's a large gap
+            # Sync sequentially from where blockchain left off
+            blockchain_height = self.blockchain.height()
+            if height > blockchain_height + 1:
+                # Large gap: start syncing from blockchain height + 1, not from tip
+                self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
+                self.logger.info(f"Starting sequential sync from {blockchain_height + 1}")
+                await self.sync_until(blockchain_height + 1)
+                return True
+            else:
+                # Small gap: can process tip header directly
+                _, height = await self.step(height, header)
+                # in the simple case, height == self.tip+1
+                if height <= self.tip:
+                    await self.sync_until(height)
+                return True
 
     async def sync_until(self, height, next_height=None):
         if next_height is None:
