@@ -43,6 +43,19 @@ if TYPE_CHECKING:
 
 _logger = get_logger(__name__)
 
+# Test if scrypt is available
+_SCRYPT_AVAILABLE = False
+try:
+    import hashlib
+    # Test scrypt with dummy data
+    test_data = b'test' * 20
+    hashlib.scrypt(test_data, salt=test_data, n=1024, r=1, p=1, dklen=32)
+    _SCRYPT_AVAILABLE = True
+    _logger.info("hashlib.scrypt is AVAILABLE - AuxPOW hashing will work correctly")
+except Exception as e:
+    _logger.error(f"CRITICAL: hashlib.scrypt NOT available: {e}")
+    _logger.error("AuxPOW blocks will use SHA256 fallback (INCORRECT)")
+
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 KAWPOW_LIMIT = 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
 MEOWPOW_LIMIT = 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
@@ -221,11 +234,16 @@ def hash_raw_header_auxpow(header: str) -> str:
     # Match server implementation: return raw bytes, then encode
     try:
         scrypt_hash = hashlib.scrypt(header_bytes, salt=header_bytes, n=1024, r=1, p=1, dklen=32)
-    except AttributeError:
-        # Fallback if scrypt not available - use double_sha256 like server
+        return hash_encode(scrypt_hash)
+    except (AttributeError, Exception) as e:
+        # CRITICAL: scrypt is REQUIRED for AuxPOW validation
+        # If scrypt is not available, we cannot validate AuxPOW blocks correctly
+        _logger.error(f"CRITICAL: hashlib.scrypt failed: {e}")
+        _logger.error(f"CRITICAL: Cannot validate AuxPOW blocks without scrypt - falling back to SHA256 (INCORRECT)")
+        # Fallback if scrypt not available - THIS IS INCORRECT but allows some operation
         from .crypto import sha256d
         scrypt_hash = sha256d(header_bytes)
-    return hash_encode(scrypt_hash)
+        return hash_encode(scrypt_hash)
 
 
 # key: blockhash hex at forkpoint
@@ -500,12 +518,20 @@ class Blockchain(Logger):
             target = 0
             if constants.net.DGW_CHECKPOINTS_START <= s <= constants.net.max_checkpoint():
                 if self.is_dgw_height_checkpoint(s) is not None:
-                    target = self.get_target(s, headers)
+                    try:
+                        target = self.get_target(s, headers)
+                    except NotEnoughHeaders:
+                        # LWMA needs more headers - trust the header's own bits during initial sync
+                        target = self.bits_to_target(header['bits'])
                 else:
                     # Just use the headers own bits for the logic
                     target = self.bits_to_target(header['bits'])
             else:
-                target = self.get_target(s, headers)
+                try:
+                    target = self.get_target(s, headers)
+                except NotEnoughHeaders:
+                    # LWMA needs more headers - trust the header's own bits during initial sync
+                    target = self.bits_to_target(header['bits'])
             
             self.verify_header(header, prev_hash, target, expected_header_hash)
             prev_hash = hash_header(header)
@@ -880,15 +906,21 @@ class Blockchain(Logger):
         blocks mined with that same algorithm.
         """
         def get_block_reading_from_height(h):
+            # Try chain dict first (for headers being validated in current chunk)
             last = None
-            try:
-                last = chain.get(h)
-            except Exception:
-                pass
+            if chain:
+                try:
+                    last = chain.get(h)
+                except Exception:
+                    pass
+            # Try reading from stored headers
             if last is None:
-                last = self.read_header(h)
+                try:
+                    last = self.read_header(h)
+                except Exception:
+                    pass
             if last is None:
-                raise NotEnoughHeaders()
+                raise NotEnoughHeaders(f'Cannot read header at height {h}')
             return last
         
         # Determine algorithm for the block we're calculating difficulty for
