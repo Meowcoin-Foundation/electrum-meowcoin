@@ -1073,6 +1073,11 @@ class Blockchain(Logger):
         # Reverse to get oldest-first order (daemon does std::reverse at line 210)
         same_algo_blocks.reverse()
         
+        # DEBUG: Log block heights used for LWMA calculation
+        if height == 1623069:
+            block_heights = [blk.get('block_height', 'unknown') for blk in same_algo_blocks]
+            self.logger.error(f'LWMA DEBUG at {height}: Using {len(same_algo_blocks)} blocks: {block_heights[:5]}...{block_heights[-5:]}')
+        
         # Debug logging removed for performance
         
         # Calculate LWMA-1
@@ -1117,6 +1122,18 @@ class Blockchain(Logger):
         next_bits = self.target_to_bits(next_target)
         first_h = same_algo_blocks[0].get('block_height', 'unknown')
         last_h = same_algo_blocks[-1].get('block_height', 'unknown')
+        
+        # DEBUG: Detailed logging for specific height
+        if height == 1623069:
+            self.logger.error(f'LWMA CALC at {height}:')
+            self.logger.error(f'  N={N}, T={T}, k={k}')
+            self.logger.error(f'  sum_targets={sum_targets}')
+            self.logger.error(f'  avg_target={avg_target}')
+            self.logger.error(f'  sum_weighted_solvetimes={sum_weighted_solvetimes}')
+            self.logger.error(f'  next_target={next_target}')
+            self.logger.error(f'  next_bits=0x{next_bits:08x}')
+            self.logger.error(f'  pow_limit={pow_limit}')
+        
         # Only log LWMA calculations for AuxPOW era blocks
         if height >= constants.net.AuxPowActivationHeight and height % 2016 == 0:  # Log every difficulty period after AuxPOW
             self.logger.info(f'LWMA: height={height}, algo={current_algo}, same={len(same_algo_blocks)}, calculated_bits=0x{next_bits:08x}')
