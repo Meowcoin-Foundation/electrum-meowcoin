@@ -46,11 +46,14 @@ _logger = get_logger(__name__)
 MAX_TARGET = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 KAWPOW_LIMIT = 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
 MEOWPOW_LIMIT = 0x0000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffff
+SCRYPT_LIMIT = 0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff  # AuxPOW/Scrypt limit
 
 HEADER_SIZE = 120  # bytes
 LEGACY_HEADER_SIZE = 80
 
 DGW_PASTBLOCKS = 180
+LWMA_AVERAGING_WINDOW = 90  # N parameter for LWMA
+POW_TARGET_SPACING = 60  # Base target spacing in seconds (1 minute)
 
 class MissingHeader(Exception):
     pass
@@ -60,6 +63,23 @@ class InvalidHeader(Exception):
 
 class NotEnoughHeaders(Exception):
     pass
+
+def get_block_algo(header: dict, height: int) -> str:
+    """Determine the mining algorithm used for a block.
+    
+    Returns:
+        'scrypt' for AuxPOW blocks
+        'meowpow' for native MeowPow blocks
+    """
+    # Check if AuxPOW is active at this height
+    if height >= constants.net.AuxPowActivationHeight:
+        # Check version bit to determine if this is an AuxPOW block
+        version_int = header.get('version', 0)
+        is_auxpow = bool(version_int & (1 << 8))
+        return 'scrypt' if is_auxpow else 'meowpow'
+    else:
+        # Before AuxPOW activation, all blocks are MeowPow
+        return 'meowpow'
 
 def serialize_header(header_dict: dict) -> str:
     ts = header_dict['timestamp']
@@ -439,15 +459,11 @@ class Blockchain(Logger):
             raise InvalidHeader(f"insufficient proof of work: {block_hash_as_num} vs target {target}")
 
     def verify_chunk(self, start_height: int, data: bytes) -> None:
-        # DEBUG: Log chunk processing details
-        self.logger.info(f'DEBUG verify_chunk: start_height={start_height}, data_len={len(data)}')
-        
         raw = []
         p = 0
         s = start_height
         prev_hash = self.get_hash(start_height - 1)
         headers = {}
-        header_count = 0
         
         while p < len(data):
             # Determine expected header length *before* slicing so we stay aligned
@@ -457,9 +473,6 @@ class Blockchain(Logger):
                 version_int = int.from_bytes(data[p:p+4], byteorder='little', signed=False)
                 is_auxpow = bool(version_int & (1 << 8))
                 header_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
-                # DEBUG: Log AuxPOW detection
-                if header_count < 5 or header_count % 500 == 0:  # Log first few and every 500th
-                    self.logger.info(f'DEBUG header {header_count}: height={s}, version=0x{version_int:08x}, is_auxpow={is_auxpow}, header_len={header_len}')
             elif s >= constants.net.KawpowActivationHeight:
                 header_len = HEADER_SIZE  # post-Kawpow headers always 120 bytes
             else:
@@ -468,14 +481,11 @@ class Blockchain(Logger):
 
             raw = data[p:p + header_len]
             
-            # DEBUG: Check for incomplete header at end
+            # Check for incomplete header at end
             if len(raw) < header_len:
-                self.logger.error(f'DEBUG: Incomplete header at position {p}: got {len(raw)} bytes, expected {header_len}')
-                self.logger.error(f'DEBUG: Remaining data: {len(data) - p} bytes')
                 break  # Exit loop instead of processing incomplete header
                 
             p += header_len
-            header_count += 1
             try:
                 expected_header_hash = self.get_hash(s)
             except MissingHeader:
@@ -788,9 +798,13 @@ class Blockchain(Logger):
         elif height <= self.height():
             return self.bits_to_target(self.read_header(height)['bits'])
         else:
-            # Now we no longer have cached checkpoints and need to compute our own DWG targets to verify
-            # a header
-            return self.get_target_dgwv3(height, chain)
+            # CRITICAL: Use LWMA multi-algo after AuxPOW activation
+            # Before AuxPOW: use DGWv3 (single algo)
+            # After AuxPOW: use LWMA (dual algo - MeowPow + Scrypt)
+            if height >= constants.net.AuxPowActivationHeight:
+                return self.get_target_lwma_multi_algo(height, chain)
+            else:
+                return self.get_target_dgwv3(height, chain)
 
     def convbignum(self, bits):
         MM = 256 * 256 * 256
@@ -854,6 +868,109 @@ class Blockchain(Logger):
         bnNew = min(bnNew, MAX_TARGET)
 
         return bnNew
+
+    def get_target_lwma_multi_algo(self, height, chain=None) -> int:
+        """LWMA multi-algo difficulty adjustment for dual-mining era.
+        
+        After AuxPOW activation, the chain supports two algorithms in parallel:
+        - MeowPow (native)
+        - Scrypt (via AuxPOW/merge mining)
+        
+        Each algorithm has independent difficulty that adjusts based only on
+        blocks mined with that same algorithm.
+        """
+        def get_block_reading_from_height(h):
+            last = None
+            try:
+                last = chain.get(h)
+            except Exception:
+                pass
+            if last is None:
+                last = self.read_header(h)
+            if last is None:
+                raise NotEnoughHeaders()
+            return last
+        
+        # Determine algorithm for the block we're calculating difficulty for
+        # The caller (verify_chunk) passes the header in the chain dict
+        current_header = chain.get(height) if chain else None
+        if current_header:
+            current_algo = get_block_algo(current_header, height)
+        else:
+            # Fallback: assume meowpow (most common after activation)
+            current_algo = 'meowpow'
+        
+        # Parameters
+        N = LWMA_AVERAGING_WINDOW
+        aux_active = height >= constants.net.AuxPowActivationHeight
+        ALGOS = 2 if aux_active else 1
+        T_chain = POW_TARGET_SPACING
+        T = T_chain * ALGOS  # Per-algo target: 60s * 2 = 120s
+        
+        # Select PoW limit for this algorithm
+        if current_algo == 'scrypt':
+            pow_limit = SCRYPT_LIMIT
+        else:
+            pow_limit = MEOWPOW_LIMIT
+        
+        # Collect last N+1 blocks of the SAME algorithm
+        same_algo_blocks = []
+        search_limit = min(height, N * 10)  # Don't search too far back
+        
+        for h in range(height - 1, max(0, height - search_limit - 1), -1):
+            if len(same_algo_blocks) >= N + 1:
+                break
+            try:
+                blk = get_block_reading_from_height(h)
+                blk_algo = get_block_algo(blk, h)
+                if blk_algo == current_algo:
+                    same_algo_blocks.append(blk)
+            except NotEnoughHeaders:
+                break
+        
+        # If we don't have enough blocks of same algo, return pow limit
+        if len(same_algo_blocks) < N:
+            return pow_limit
+        
+        # Calculate LWMA-1
+        sum_targets = 0
+        sum_weighted_solvetimes = 0
+        prev_time = same_algo_blocks[0]['timestamp']
+        
+        for i in range(1, N + 1):
+            blk = same_algo_blocks[i]
+            ts = blk['timestamp']
+            
+            # Ensure timestamps are monotonic
+            if ts <= prev_time:
+                ts = prev_time + 1
+            
+            solve_time = ts - prev_time
+            prev_time = ts
+            
+            # Clamp solve time (relative to per-algo target T)
+            solve_time = max(1, min(solve_time, 6 * T))
+            
+            # Weighted sum
+            sum_weighted_solvetimes += i * solve_time
+            
+            # Sum targets
+            blk_target = self.bits_to_target(blk['bits'])
+            sum_targets += blk_target
+        
+        # Average target
+        avg_target = sum_targets // N
+        
+        # LWMA-1 formula: avgTarget * sumWeightedSolvetimes / k
+        # where k = N * (N + 1) * T / 2
+        k = N * (N + 1) * T // 2
+        
+        next_target = (avg_target * sum_weighted_solvetimes) // k
+        
+        # Clamp to pow limit
+        next_target = min(next_target, pow_limit)
+        
+        return next_target
 
     @classmethod
     def bits_to_target(cls, bits: int) -> int:
