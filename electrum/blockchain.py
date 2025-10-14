@@ -1013,11 +1013,14 @@ class Blockchain(Logger):
         current_header = chain.get(height) if chain else None
         if current_header:
             current_algo = get_block_algo(current_header, height)
-            self.logger.info(f'LWMA: height={height}, detected algo={current_algo} from header')
+            # Only log for blocks after AuxPOW activation where new LWMA logic applies
+            if height >= constants.net.AuxPowActivationHeight:
+                self.logger.info(f'LWMA: height={height}, detected algo={current_algo} from header')
         else:
             # Fallback: if we don't have the header yet, we can't calculate target
             # This can happen during initial sync - raise NotEnoughHeaders to trigger chunk download
-            self.logger.info(f'LWMA: height={height}, missing current header to determine algo')
+            if height >= constants.net.AuxPowActivationHeight:
+                self.logger.info(f'LWMA: height={height}, missing current header to determine algo')
             raise NotEnoughHeaders(f'Missing header at height {height} to determine algorithm')
         
         # Parameters
@@ -1056,7 +1059,8 @@ class Blockchain(Logger):
         # If we don't have enough blocks of same algo, raise NotEnoughHeaders
         # This will trigger chunk download in the caller
         if len(same_algo_blocks) < N + 1:
-            self.logger.info(f'LWMA: height={height}, algo={current_algo}, found={len(same_algo_blocks)}/{N+1}, need more headers')
+            if height >= constants.net.AuxPowActivationHeight:
+                self.logger.info(f'LWMA: height={height}, algo={current_algo}, found={len(same_algo_blocks)}/{N+1}, need more headers')
             raise NotEnoughHeaders(f'Need {N+1} blocks of {current_algo}, only have {len(same_algo_blocks)}')
         
         # Reverse to get oldest-first order (daemon does std::reverse at line 210)
@@ -1106,8 +1110,8 @@ class Blockchain(Logger):
         next_bits = self.target_to_bits(next_target)
         first_h = same_algo_blocks[0].get('block_height', 'unknown')
         last_h = same_algo_blocks[-1].get('block_height', 'unknown')
-        # Only log LWMA calculations occasionally to avoid spam
-        if height % 2016 == 0:  # Log every difficulty period
+        # Only log LWMA calculations for AuxPOW era blocks
+        if height >= constants.net.AuxPowActivationHeight and height % 2016 == 0:  # Log every difficulty period after AuxPOW
             self.logger.info(f'LWMA: height={height}, algo={current_algo}, same={len(same_algo_blocks)}, calculated_bits=0x{next_bits:08x}')
         
         # Detailed debugging removed for performance
