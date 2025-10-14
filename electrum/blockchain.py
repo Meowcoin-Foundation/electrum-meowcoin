@@ -106,19 +106,26 @@ def get_block_algo(header: dict, height: int) -> str:
         return 'meowpow'
 
 def serialize_header(header_dict: dict) -> str:
-    ts = header_dict['timestamp']
-    # Check if this is an AuxPoW header (missing nheight field)
-    is_auxpow = 'nheight' not in header_dict
-    if ts >= constants.net.KawpowActivationTS and not is_auxpow:
+    # CRITICAL: Base serialization on header STRUCTURE, not timestamp
+    # If header has nheight field → MeowPow format (120 bytes)  
+    # If header lacks nheight field → AuxPOW/legacy format (80 bytes)
+    is_meowpow_header = 'nheight' in header_dict
+    is_auxpow = not is_meowpow_header
+    
+    if is_meowpow_header:
+        # MeowPow/KawPow header format (120 bytes)
+        # Use nonce64 field if available, otherwise use nonce (but as 8 bytes)
+        nonce_value = header_dict.get('nonce64', header_dict.get('nonce', 0))
         s = int_to_hex(header_dict['version'], 4) \
             + rev_hex(header_dict['prev_block_hash']) \
             + rev_hex(header_dict['merkle_root']) \
             + int_to_hex(int(header_dict['timestamp']), 4) \
             + int_to_hex(int(header_dict['bits']), 4) \
             + int_to_hex(int(header_dict['nheight']), 4) \
-            + int_to_hex(int(header_dict['nonce']), 8) \
+            + int_to_hex(int(nonce_value), 8) \
             + rev_hex(header_dict['mix_hash'])
     else:
+        # AuxPOW/legacy header format (80 bytes)
         s = int_to_hex(header_dict['version'], 4) \
             + rev_hex(header_dict['prev_block_hash']) \
             + rev_hex(header_dict['merkle_root']) \
