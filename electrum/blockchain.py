@@ -120,7 +120,10 @@ def serialize_header(header_dict: dict) -> str:
             + int_to_hex(int(header_dict['timestamp']), 4) \
             + int_to_hex(int(header_dict['bits']), 4) \
             + int_to_hex(int(header_dict['nonce']), 4)
-        s = s.ljust(HEADER_SIZE * 2, '0')  # pad with zeros to post kawpow header size
+        # CRITICAL FIX: Don't pad AuxPOW headers - they must be exactly 80 bytes for hashing
+        # Padding is only for storage/display compatibility
+        if not is_auxpow:
+            s = s.ljust(HEADER_SIZE * 2, '0')  # pad only non-AuxPOW legacy headers
     return s
 
 def deserialize_header(s: bytes, height: int) -> dict:
