@@ -605,8 +605,9 @@ class Blockchain(Logger):
 
         # DEBUG: Log final counts before DGW validation
         processed_headers = s - start_height
-        self.logger.info(f'DEBUG verify_chunk: processed {processed_headers} headers (expected {constants.net.DGW_CHECKPOINTS_SPACING})')
-        self.logger.info(f'DEBUG verify_chunk: bytes processed={p}, total data={len(data)}')
+        # Only log if there's an issue
+        if processed_headers != constants.net.DGW_CHECKPOINTS_SPACING:
+            self.logger.warning(f'verify_chunk: processed {processed_headers} headers (expected {constants.net.DGW_CHECKPOINTS_SPACING})')
         
         # DGW must be received in correct chunk sizes to be valid with our checkpoints
         if constants.net.DGW_CHECKPOINTS_START <= start_height <= constants.net.max_checkpoint():
@@ -1061,14 +1062,7 @@ class Blockchain(Logger):
         # Reverse to get oldest-first order (daemon does std::reverse at line 210)
         same_algo_blocks.reverse()
         
-        # DEBUG: Log block heights collected for LWMA
-        if height == 1622881:
-            block_heights = [b.get('block_height', '?') for b in same_algo_blocks]
-            self.logger.info(f'LWMA DEBUG h={height}: collected blocks: {block_heights[:10]}...{block_heights[-10:]}')
-            # Log first 3 blocks in detail
-            for i in range(min(3, len(same_algo_blocks))):
-                blk = same_algo_blocks[i]
-                self.logger.info(f'LWMA DEBUG h={height}: block[{i}] height={blk.get("block_height")}, ts={blk.get("timestamp")}, bits=0x{blk.get("bits"):08x}')
+        # Debug logging removed for performance
         
         # Calculate LWMA-1
         sum_targets = 0
@@ -1112,23 +1106,11 @@ class Blockchain(Logger):
         next_bits = self.target_to_bits(next_target)
         first_h = same_algo_blocks[0].get('block_height', 'unknown')
         last_h = same_algo_blocks[-1].get('block_height', 'unknown')
-        self.logger.info(f'LWMA: height={height}, algo={current_algo}, same={len(same_algo_blocks)}, calculated_bits=0x{next_bits:08x}, firstH={first_h}, lastH={last_h}')
+        # Only log LWMA calculations occasionally to avoid spam
+        if height % 2016 == 0:  # Log every difficulty period
+            self.logger.info(f'LWMA: height={height}, algo={current_algo}, same={len(same_algo_blocks)}, calculated_bits=0x{next_bits:08x}')
         
-        # DEBUG: Detailed calculation for block 1622881
-        if height == 1622881:
-            self.logger.info(f'LWMA CALC h={height}: N={N}, T={T}, k={k}')
-            self.logger.info(f'LWMA CALC h={height}: sum_targets={sum_targets}, avg_target={avg_target}')
-            self.logger.info(f'LWMA CALC h={height}: sum_weighted_solvetimes={sum_weighted_solvetimes}')
-            # Calculate step by step like the daemon
-            intermediate = avg_target * sum_weighted_solvetimes
-            self.logger.info(f'LWMA CALC h={height}: avg_target * sum_weighted_solvetimes = {intermediate}')
-            final = intermediate // k
-            self.logger.info(f'LWMA CALC h={height}: intermediate // k = {final}')
-            self.logger.info(f'LWMA CALC h={height}: next_target={next_target}, next_bits=0x{next_bits:08x}')
-            # Convert daemon's expected bits to target for comparison
-            daemon_bits = 0x1c009817
-            daemon_target = self.bits_to_target(daemon_bits)
-            self.logger.info(f'LWMA CALC h={height}: daemon expects bits=0x{daemon_bits:08x}, target={daemon_target}')
+        # Detailed debugging removed for performance
         
         return next_target
 
