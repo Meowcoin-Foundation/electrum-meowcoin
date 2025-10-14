@@ -1021,11 +1021,15 @@ class Blockchain(Logger):
             pow_limit = MEOWPOW_LIMIT
         
         # Collect last N+1 blocks of the SAME algorithm
+        # CRITICAL: Start from (height-1) like daemon does from pindexLast (which is the prev block)
         same_algo_blocks = []
-        search_limit = min(height, N * 10)  # Don't search too far back
+        search_limit = min(height - 1, N * 10)  # Don't search too far back
         
-        for h in range(height - 1, max(0, height - search_limit - 1), -1):
+        # Daemon starts at h=pindexLast->nHeight (the prev block), we start at height-1
+        for h in range(height - 1, max(-1, height - 1 - search_limit - 1), -1):
             if len(same_algo_blocks) >= N + 1:
+                break
+            if h < 0:
                 break
             try:
                 blk = get_block_reading_from_height(h)
@@ -1038,9 +1042,12 @@ class Blockchain(Logger):
         
         # If we don't have enough blocks of same algo, raise NotEnoughHeaders
         # This will trigger chunk download in the caller
-        if len(same_algo_blocks) < N:
-            self.logger.info(f'LWMA: height={height}, algo={current_algo}, found={len(same_algo_blocks)}/{N}, need more headers')
-            raise NotEnoughHeaders(f'Need {N} blocks of {current_algo}, only have {len(same_algo_blocks)}')
+        if len(same_algo_blocks) < N + 1:
+            self.logger.info(f'LWMA: height={height}, algo={current_algo}, found={len(same_algo_blocks)}/{N+1}, need more headers')
+            raise NotEnoughHeaders(f'Need {N+1} blocks of {current_algo}, only have {len(same_algo_blocks)}')
+        
+        # Reverse to get oldest-first order (daemon does std::reverse at line 210)
+        same_algo_blocks.reverse()
         
         # Calculate LWMA-1
         sum_targets = 0
@@ -1082,7 +1089,9 @@ class Blockchain(Logger):
         
         # Log calculated target for debugging
         next_bits = self.target_to_bits(next_target)
-        self.logger.info(f'LWMA: height={height}, algo={current_algo}, calculated_bits=0x{next_bits:08x}, target={next_target}')
+        first_h = same_algo_blocks[0].get('block_height', 'unknown')
+        last_h = same_algo_blocks[-1].get('block_height', 'unknown')
+        self.logger.info(f'LWMA: height={height}, algo={current_algo}, same={len(same_algo_blocks)}, calculated_bits=0x{next_bits:08x}, firstH={first_h}, lastH={last_h}')
         
         return next_target
 
