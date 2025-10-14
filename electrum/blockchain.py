@@ -1054,6 +1054,11 @@ class Blockchain(Logger):
         # Reverse to get oldest-first order (daemon does std::reverse at line 210)
         same_algo_blocks.reverse()
         
+        # DEBUG: Log block heights collected for LWMA
+        if height == 1622881:
+            block_heights = [b.get('block_height', '?') for b in same_algo_blocks]
+            self.logger.info(f'LWMA DEBUG h={height}: collected blocks: {block_heights[:10]}...{block_heights[-10:]}')
+        
         # Calculate LWMA-1
         sum_targets = 0
         sum_weighted_solvetimes = 0
@@ -1097,6 +1102,13 @@ class Blockchain(Logger):
         first_h = same_algo_blocks[0].get('block_height', 'unknown')
         last_h = same_algo_blocks[-1].get('block_height', 'unknown')
         self.logger.info(f'LWMA: height={height}, algo={current_algo}, same={len(same_algo_blocks)}, calculated_bits=0x{next_bits:08x}, firstH={first_h}, lastH={last_h}')
+        
+        # DEBUG: Detailed calculation for block 1622881
+        if height == 1622881:
+            self.logger.info(f'LWMA CALC h={height}: N={N}, T={T}, k={k}')
+            self.logger.info(f'LWMA CALC h={height}: sum_targets={sum_targets}, avg_target={avg_target}')
+            self.logger.info(f'LWMA CALC h={height}: sum_weighted_solvetimes={sum_weighted_solvetimes}')
+            self.logger.info(f'LWMA CALC h={height}: next_target={next_target}, next_bits=0x{next_bits:08x}')
         
         return next_target
 
