@@ -439,22 +439,43 @@ class Blockchain(Logger):
             raise InvalidHeader(f"insufficient proof of work: {block_hash_as_num} vs target {target}")
 
     def verify_chunk(self, start_height: int, data: bytes) -> None:
+        # DEBUG: Log chunk processing details
+        self.logger.info(f'DEBUG verify_chunk: start_height={start_height}, data_len={len(data)}')
+        
         raw = []
         p = 0
         s = start_height
         prev_hash = self.get_hash(start_height - 1)
         headers = {}
+        header_count = 0
+        
         while p < len(data):
             # Determine expected header length *before* slicing so we stay aligned
-            if s >= constants.net.KawpowActivationHeight:
+            # CRITICAL FIX: Check AuxPOW first (takes precedence over KAWPOW)
+            if s >= constants.net.AuxPowActivationHeight:
+                # After AuxPOW activation, check version bit to determine header size
+                version_int = int.from_bytes(data[p:p+4], byteorder='little', signed=False)
+                is_auxpow = bool(version_int & (1 << 8))
+                header_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
+                # DEBUG: Log AuxPOW detection
+                if header_count < 5 or header_count % 500 == 0:  # Log first few and every 500th
+                    self.logger.info(f'DEBUG header {header_count}: height={s}, version=0x{version_int:08x}, is_auxpow={is_auxpow}, header_len={header_len}')
+            elif s >= constants.net.KawpowActivationHeight:
                 header_len = HEADER_SIZE  # post-Kawpow headers always 120 bytes
             else:
-                version_int = int.from_bytes(data[p:p+4], byteorder='little', signed=False)
-                is_auxpow = bool(version_int & (1 << 8)) and s >= constants.net.AuxPowActivationHeight
-                header_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
+                # Pre-KAWPOW: always 80 bytes (x16r/x16rv2)
+                header_len = LEGACY_HEADER_SIZE
 
             raw = data[p:p + header_len]
+            
+            # DEBUG: Check for incomplete header at end
+            if len(raw) < header_len:
+                self.logger.error(f'DEBUG: Incomplete header at position {p}: got {len(raw)} bytes, expected {header_len}')
+                self.logger.error(f'DEBUG: Remaining data: {len(data) - p} bytes')
+                break  # Exit loop instead of processing incomplete header
+                
             p += header_len
+            header_count += 1
             try:
                 expected_header_hash = self.get_hash(s)
             except MissingHeader:
@@ -480,10 +501,17 @@ class Blockchain(Logger):
             prev_hash = hash_header(header)
             s += 1
 
+        # DEBUG: Log final counts before DGW validation
+        processed_headers = s - start_height
+        self.logger.info(f'DEBUG verify_chunk: processed {processed_headers} headers (expected {constants.net.DGW_CHECKPOINTS_SPACING})')
+        self.logger.info(f'DEBUG verify_chunk: bytes processed={p}, total data={len(data)}')
+        
         # DGW must be received in correct chunk sizes to be valid with our checkpoints
         if constants.net.DGW_CHECKPOINTS_START <= start_height <= constants.net.max_checkpoint():
-            assert start_height % constants.net.DGW_CHECKPOINTS_SPACING == 0, 'dgw chunk not from start'
-            assert s - start_height == constants.net.DGW_CHECKPOINTS_SPACING, 'dgw chunk not correct size'
+            assert start_height % constants.net.DGW_CHECKPOINTS_SPACING == 0, f'dgw chunk not from start: {start_height} % {constants.net.DGW_CHECKPOINTS_SPACING} != 0'
+            if processed_headers != constants.net.DGW_CHECKPOINTS_SPACING:
+                self.logger.error(f'DEBUG DGW chunk size mismatch: got {processed_headers}, expected {constants.net.DGW_CHECKPOINTS_SPACING}')
+            assert processed_headers == constants.net.DGW_CHECKPOINTS_SPACING, f'dgw chunk not correct size: got {processed_headers}, expected {constants.net.DGW_CHECKPOINTS_SPACING}'
 
     @with_lock
     def path(self):
@@ -522,12 +550,17 @@ class Blockchain(Logger):
             p = 0
             s = start_height
             while p < len(chunk):
-                if s >= constants.net.KawpowActivationHeight:
+                # CRITICAL FIX: Check AuxPOW first (takes precedence over KAWPOW)
+                if s >= constants.net.AuxPowActivationHeight:
+                    # After AuxPOW activation, check version bit to determine header size
+                    version_int = int.from_bytes(chunk[p:p+4], byteorder='little', signed=False)
+                    is_auxpow = bool(version_int & (1 << 8))
+                    hdr_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
+                elif s >= constants.net.KawpowActivationHeight:
                     hdr_len = HEADER_SIZE
                 else:
-                    version_int = int.from_bytes(chunk[p:p+4], byteorder='little', signed=False)
-                    is_auxpow = bool(version_int & (1 << 8)) and s >= constants.net.AuxPowActivationHeight
-                    hdr_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
+                    # Pre-KAWPOW: always 80 bytes (x16r/x16rv2)
+                    hdr_len = LEGACY_HEADER_SIZE
 
                 if hdr_len == LEGACY_HEADER_SIZE:
                     r += chunk[p:p + hdr_len] + bytes(40)  # pad to 120 for storage
