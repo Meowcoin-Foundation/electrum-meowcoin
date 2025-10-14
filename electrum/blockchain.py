@@ -1196,17 +1196,26 @@ class Blockchain(Logger):
 
     def can_connect(self, header: dict, check_height: bool=True) -> bool:
         if header is None:
+            self.logger.info(f'can_connect: header is None')
             return False
         height = header['block_height']
         if check_height and self.height() != height - 1:
+            self.logger.info(f'can_connect: height mismatch at {height}, blockchain height={self.height()}')
             return False
         if height == 0:
-            return hash_header(header) == constants.net.GENESIS
+            result = hash_header(header) == constants.net.GENESIS
+            if not result:
+                self.logger.warning(f'can_connect: genesis hash mismatch')
+            return result
         try:
             prev_hash = self.get_hash(height - 1)
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f'can_connect: failed to get prev hash at {height}: {e}')
             return False
         if prev_hash != header.get('prev_block_hash'):
+            self.logger.warning(f'can_connect: prev_hash mismatch at {height}')
+            self.logger.warning(f'  Expected: {prev_hash}')
+            self.logger.warning(f'  Got: {header.get("prev_block_hash")}')
             return False
         headers = {header.get('block_height'): header}
         try:
@@ -1214,11 +1223,13 @@ class Blockchain(Logger):
         except (MissingHeader, NotEnoughHeaders):
             # Re-raise NotEnoughHeaders so interface.py can request chunks
             raise
-        except Exception:
+        except Exception as e:
+            self.logger.warning(f'can_connect: get_target failed at {height}: {e}')
             return False
         try:
             self.verify_header(header, prev_hash, target)
         except BaseException as e:
+            self.logger.warning(f'can_connect: verify_header failed at {height}: {e}')
             return False
         return True
 
