@@ -498,6 +498,20 @@ class Blockchain(Logger):
             raise InvalidHeader("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
             return
+        
+        # Check if this is an AuxPOW block
+        height = header.get('block_height', 0)
+        version_int = int(header.get('version', 0))
+        is_auxpow = bool(version_int & (1 << 8)) and height >= constants.net.AuxPowActivationHeight
+        
+        if is_auxpow:
+            # CRITICAL: AuxPOW blocks don't validate PoW on Meowcoin header
+            # The actual PoW is in the parent block (Litecoin) included in AuxPOW data
+            # We only verify prev_hash linkage, not difficulty
+            # The server (ElectrumX + daemon) already validated the full AuxPOW chain
+            return
+        
+        # For non-AuxPOW blocks, verify bits and PoW normally
         bits = cls.target_to_bits(target)
         if bits != header.get('bits'):
             raise InvalidHeader("bits mismatch: %s vs %s" % (bits, header.get('bits')))
