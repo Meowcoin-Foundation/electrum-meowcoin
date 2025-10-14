@@ -533,7 +533,18 @@ class Blockchain(Logger):
                     # LWMA needs more headers - trust the header's own bits during initial sync
                     target = self.bits_to_target(header['bits'])
             
-            self.verify_header(header, prev_hash, target, expected_header_hash)
+            try:
+                self.verify_header(header, prev_hash, target, expected_header_hash)
+            except InvalidHeader as e:
+                # Log which specific header failed
+                algo = get_block_algo(header, s)
+                self.logger.error(f'Header validation FAILED at height {s}:')
+                self.logger.error(f'  Algorithm: {algo}')
+                self.logger.error(f'  Version: 0x{header["version"]:08x}')
+                self.logger.error(f'  Bits: 0x{header["bits"]:08x}')
+                self.logger.error(f'  Target used: {target}')
+                self.logger.error(f'  Error: {e}')
+                raise
             prev_hash = hash_header(header)
             s += 1
 
