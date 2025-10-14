@@ -95,6 +95,11 @@ def get_block_algo(header: dict, height: int) -> str:
         # Check version bit to determine if this is an AuxPOW block
         version_int = header.get('version', 0)
         is_auxpow = bool(version_int & (1 << 8))
+        
+        # DEBUG: Log algo detection for troubleshooting
+        if height in [1622881, 1622880]:
+            _logger.info(f'get_block_algo: h={height}, version=0x{version_int:08x}, bit8={(version_int & (1 << 8)) != 0}, is_auxpow={is_auxpow}, algo={"scrypt" if is_auxpow else "meowpow"}')
+        
         return 'scrypt' if is_auxpow else 'meowpow'
     else:
         # Before AuxPOW activation, all blocks are MeowPow
