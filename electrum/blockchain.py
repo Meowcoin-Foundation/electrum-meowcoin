@@ -892,13 +892,16 @@ class Blockchain(Logger):
             return last
         
         # Determine algorithm for the block we're calculating difficulty for
-        # The caller (verify_chunk) passes the header in the chain dict
+        # The caller (verify_chunk or can_connect) passes the header in the chain dict
         current_header = chain.get(height) if chain else None
         if current_header:
             current_algo = get_block_algo(current_header, height)
+            self.logger.info(f'LWMA: height={height}, detected algo={current_algo} from header')
         else:
-            # Fallback: assume meowpow (most common after activation)
-            current_algo = 'meowpow'
+            # Fallback: if we don't have the header yet, we can't calculate target
+            # This can happen during initial sync - raise NotEnoughHeaders to trigger chunk download
+            self.logger.info(f'LWMA: height={height}, missing current header to determine algo')
+            raise NotEnoughHeaders(f'Missing header at height {height} to determine algorithm')
         
         # Parameters
         N = LWMA_AVERAGING_WINDOW
@@ -925,12 +928,15 @@ class Blockchain(Logger):
                 blk_algo = get_block_algo(blk, h)
                 if blk_algo == current_algo:
                     same_algo_blocks.append(blk)
-            except NotEnoughHeaders:
+            except (NotEnoughHeaders, MissingHeader, Exception):
+                # Not enough headers available yet - can't calculate LWMA
                 break
         
-        # If we don't have enough blocks of same algo, return pow limit
+        # If we don't have enough blocks of same algo, raise NotEnoughHeaders
+        # This will trigger chunk download in the caller
         if len(same_algo_blocks) < N:
-            return pow_limit
+            self.logger.info(f'LWMA: height={height}, algo={current_algo}, found={len(same_algo_blocks)}/{N}, need more headers')
+            raise NotEnoughHeaders(f'Need {N} blocks of {current_algo}, only have {len(same_algo_blocks)}')
         
         # Calculate LWMA-1
         sum_targets = 0
@@ -969,6 +975,10 @@ class Blockchain(Logger):
         
         # Clamp to pow limit
         next_target = min(next_target, pow_limit)
+        
+        # Log calculated target for debugging
+        next_bits = self.target_to_bits(next_target)
+        self.logger.info(f'LWMA: height={height}, algo={current_algo}, calculated_bits=0x{next_bits:08x}, target={next_target}')
         
         return next_target
 
@@ -1065,7 +1075,10 @@ class Blockchain(Logger):
         headers = {header.get('block_height'): header}
         try:
             target = self.get_target(height, headers)
-        except MissingHeader:
+        except (MissingHeader, NotEnoughHeaders):
+            # Re-raise NotEnoughHeaders so interface.py can request chunks
+            raise
+        except Exception:
             return False
         try:
             self.verify_header(header, prev_hash, target)
