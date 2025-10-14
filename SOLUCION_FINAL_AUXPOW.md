@@ -168,3 +168,4 @@ Una vez que el servidor complete la resincronización (6-8 horas):
 3. **El servidor debe reindexar completamente** para eliminar metadata corrupta
 4. **La compilación de AppImage falla** por problema de Docker (independiente del fix)
 
+

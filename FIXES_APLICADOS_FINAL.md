@@ -163,3 +163,4 @@ Probar con `v2.1.0-13-g372915d2f` - debería ser el FIX FINAL que permite:
 - ✅ Guardar headers correctamente
 - ✅ Sincronizar completamente
 
+

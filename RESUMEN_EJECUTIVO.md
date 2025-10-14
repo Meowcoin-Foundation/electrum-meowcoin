@@ -165,3 +165,4 @@ Con la solución implementada, estos errores están resueltos:
 **Problema resuelto**: SÍ
 **Próximo paso**: Esperar reindex del servidor
 
+

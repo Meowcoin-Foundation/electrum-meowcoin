@@ -502,7 +502,7 @@ class Blockchain(Logger):
         self._size = os.path.getsize(p)//HEADER_SIZE if os.path.exists(p) else 0
 
     @classmethod
-    def verify_header(cls, header: dict, prev_hash: str, target: int, expected_header_hash: str=None) -> None:
+    def verify_header(cls, header: dict, prev_hash: str, target: int, expected_header_hash: str=None, skip_bits_check: bool=False) -> None:
         _hash = hash_header(header)
         if expected_header_hash and expected_header_hash != _hash:
             raise InvalidHeader("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
@@ -524,9 +524,11 @@ class Blockchain(Logger):
             return
         
         # For non-AuxPOW blocks, verify bits and PoW normally
-        bits = cls.target_to_bits(target)
-        if bits != header.get('bits'):
-            raise InvalidHeader("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        # Skip bits check if we're using fallback target (not enough headers for LWMA)
+        if not skip_bits_check:
+            bits = cls.target_to_bits(target)
+            if bits != header.get('bits'):
+                raise InvalidHeader("bits mismatch: %s vs %s" % (bits, header.get('bits')))
         block_hash_as_num = int.from_bytes(bfh(_hash), byteorder='big')
         if block_hash_as_num > target:
             raise InvalidHeader(f"insufficient proof of work: {block_hash_as_num} vs target {target}")
@@ -571,6 +573,8 @@ class Blockchain(Logger):
             # Don't bother with the target of headers in the middle of
             # DGW checkpoints
             target = 0
+            skip_bits_check = False  # Track if we're using fallback target
+            
             if constants.net.DGW_CHECKPOINTS_START <= s <= constants.net.max_checkpoint():
                 if self.is_dgw_height_checkpoint(s) is not None:
                     try:
@@ -578,6 +582,7 @@ class Blockchain(Logger):
                     except NotEnoughHeaders:
                         # LWMA needs more headers - trust the header's own bits during initial sync
                         target = self.bits_to_target(header['bits'])
+                        skip_bits_check = True
                 else:
                     # Just use the headers own bits for the logic
                     target = self.bits_to_target(header['bits'])
@@ -586,10 +591,12 @@ class Blockchain(Logger):
                     target = self.get_target(s, headers)
                 except NotEnoughHeaders:
                     # LWMA needs more headers - trust the header's own bits during initial sync
+                    self.logger.info(f'verify_chunk: Using fallback target for height {s} (not enough headers for LWMA)')
                     target = self.bits_to_target(header['bits'])
+                    skip_bits_check = True
             
             try:
-                self.verify_header(header, prev_hash, target, expected_header_hash)
+                self.verify_header(header, prev_hash, target, expected_header_hash, skip_bits_check=skip_bits_check)
             except InvalidHeader as e:
                 # Log which specific header failed
                 algo = get_block_algo(header, s)

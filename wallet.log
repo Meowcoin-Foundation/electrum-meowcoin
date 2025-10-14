@@ -1,0 +1,839 @@
+ ./electrum-meowcoin-v2.1.0-24-gf18eaa7c3-dirty-x86_64.AppImage --oneserver --server meowelectrum2.testtopper.biz:50002:s -v 
+  0.78 | I | i18n | gettext setting initial language to None
+  1.27 | I | blockchain | ✅ hashlib.scrypt is AVAILABLE and WORKING - AuxPOW hashing will be correct
+  1.60 | I | simple_config.SimpleConfig | electrum directory /home/carlos/.electrum-meowcoin
+  1.66 | I | __main__ | get_default_language: detected default as lang='en_UK'
+  1.66 | I | i18n | setting language to 'en_UK'
+  1.66 | I | logging | Electrum version: 2.1.0 - https://electrum.org - https://github.com/Meowcoin-Foundation/electrum-meowcoin
+  1.66 | I | logging | Python version: 3.10.11 (main, Jun 28 2018, 19:01:02) [GCC 8.3.0]. On platform: Linux-6.16.8-1-MANJARO-x86_64-with-glibc2.42
+  1.66 | I | logging | Logging to file: None
+  1.66 | I | logging | Log filters: verbosity '*', verbosity_shortcuts ''
+  1.67 | I | n/network | blockchains [0]
+  1.67 | I | n/network | setting proxy None
+  1.67 | I | exchange_rate.FxThread | using exchange CoinGecko
+  1.67 | I | daemon.Daemon | starting taskgroup.
+  1.68 | D | util.profiler | Daemon.__init__ 0.0121 sec
+  1.68 | I | daemon.CommandsServer | now running and listening. socktype=unix, addr=/home/carlos/.electrum-meowcoin/daemon_rpc_socket
+  1.69 | I | p/plugin.Plugins | registering hardware ledger: ('hardware', 'ledger', 'Ledger wallet')
+  1.69 | I | p/plugin.Plugins | registering hardware trezor: ('hardware', 'trezor', 'Trezor wallet')
+  1.69 | D | util.profiler | Plugins.__init__ 0.0108 sec
+  1.69 | I | daemon.Daemon | launching GUI: qt
+  1.91 | I | gui.qt.ElectrumGui | Qt GUI starting up... Qt=5.15.2, PyQt=5.15.9
+  2.11 | D | util.profiler | ElectrumGui.__init__ 0.2059 sec
+  2.12 | I | daemon.Daemon | starting network.
+  2.12 | I | n/network | starting network
+  2.12 | I | n/network | setting proxy None
+  2.12 | I | n/network | connecting to meowelectrum2.testtopper.biz:50002:s as new interface
+  2.12 | I | n/network | starting taskgroup (0x7f7ac5861db0).
+  2.13 | I | ipfs_db.IPFSDB | loaded IPFS database
+  2.13 | I | ipfs_db.IPFSDB | pruned 0 stale ipfs data sets
+  2.13 | I | storage.WalletStorage | wallet path /home/carlos/.electrum-meowcoin/wallets/default_wallet
+  2.13 | D | util.profiler | Daemon._load_wallet 0.0003 sec
+  2.17 | I | storage.WalletStorage | wallet path /home/carlos/.electrum-meowcoin/wallets/default_wallet
+  4.24 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | connection established. version: ['ElectrumX Ravencoin 1.12', '1.11']
+  4.39 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | set blockchain with height 1622879
+  4.39 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | Large sync gap detected: blockchain at 1622879, server at 1625443
+  4.39 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | Starting sequential sync from 1622880
+  4.39 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | requesting chunk from height 1622880
+  4.39 | I | n/network | switching to meowelectrum2.testtopper.biz:50002:s
+  4.39 | I | n/network | fee_estimates {25: 2841253, 10: 2841253, 5: 2841253, 2: 2841253}
+  4.73 | I | n/network | fee_histogram 0
+ 14.30 | I | storage.WalletStorage | wallet path /home/carlos/.electrum-meowcoin/wallets/default_wallet
+ 14.30 | D | util.profiler | WalletDB._load_transactions 0.0002 sec
+ 14.30 | D | util.profiler | WalletDB._load_transactions 0.0001 sec
+ 14.31 | I | storage.WalletStorage | saved /home/carlos/.electrum-meowcoin/wallets/default_wallet
+ 14.31 | D | util.profiler | JsonDB._write 0.0031 sec
+ 14.31 | D | util.profiler | AddressSynchronizer.load_local_history 0.0000 sec
+ 14.31 | D | util.profiler | AddressSynchronizer.check_history 0.0000 sec
+ 14.32 | I | w/wallet.Standard_Wallet.[default_wallet] | starting taskgroup.
+ 14.32 | D | synchronizer.[default_wallet] | stopping. full_shutdown=False
+ 14.32 | D | synchronizer.[default_wallet] | starting. interface.server='meowelectrum2.testtopper.biz:50002:s'
+ 14.32 | D | verifier.[default_wallet] | stopping. full_shutdown=False
+ 14.33 | D | verifier.[default_wallet] | starting. interface.server='meowelectrum2.testtopper.biz:50002:s'
+ 14.33 | D | synchronizer.[default_wallet] | starting taskgroup (0x7f7ac4d6d840).
+ 14.33 | D | verifier.[default_wallet] | starting taskgroup (0x7f7ac4d6c610).
+ 14.47 | D | gui.qt.asset_management_panel.CreateAssetPanel | check fields, v=True, d=True, s=True, a=False, c=True m=True
+ 14.47 | D | gui.qt.asset_management_panel.CreateAssetPanel | check fields, v=True, d=True, s=True, a=False, c=True m=True
+ 14.47 | D | gui.qt.asset_management_panel.CreateAssetPanel | check fields, v=True, d=True, s=True, a=False, c=True m=True
+ 14.47 | D | gui.qt.asset_management_panel.ReissueAssetPanel | check fields, v=True, d=True, s=True, a=False, c=True m=True
+ 14.48 | D | gui.qt.asset_management_panel.ReissueAssetPanel | check fields, v=True, d=True, s=True, a=False, c=True m=True
+ 14.53 | D | util.profiler | AddressList.update 0.0000 sec
+ 14.71 | I | gui.qt.main_window.[default_wallet] | using default geometry
+ 14.72 | D | util.profiler | Deterministic_Wallet.try_detecting_internal_addresses_corruption 0.0011 sec
+ 14.72 | D | util.profiler | ElectrumWindow.load_wallet 0.0238 sec
+ 16.37 | I | gui.qt.ElectrumGui | starting Qt main loop
+ 64.76 | D | verifier.[default_wallet] | taskgroup stopped (0x7f7ac4d6c610).
+ 64.76 | D | synchronizer.[default_wallet] | taskgroup stopped (0x7f7ac4d6d840).
+ 64.85 | W | i/interface.[meowelectrum2.testtopper.biz:50002] | disconnecting due to GracefulDisconnect(RPCError(-102, 'server busy - request timed out'))
+ 64.86 | I | n/network | connecting to meowelectrum2.testtopper.biz:50002:s as new interface
+ 67.60 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | connection established. version: ['ElectrumX Ravencoin 1.12', '1.11']
+ 67.82 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | set blockchain with height 1622879
+ 67.82 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | Large sync gap detected: blockchain at 1622879, server at 1625443
+ 67.82 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | Starting sequential sync from 1622880
+ 67.82 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | requesting chunk from height 1622880
+ 67.82 | I | n/network | switching to meowelectrum2.testtopper.biz:50002:s
+ 67.82 | D | synchronizer.[default_wallet] | stopping. full_shutdown=False
+ 67.82 | D | synchronizer.[default_wallet] | starting. interface.server='meowelectrum2.testtopper.biz:50002:s'
+ 67.82 | D | verifier.[default_wallet] | stopping. full_shutdown=False
+ 67.82 | D | verifier.[default_wallet] | starting. interface.server='meowelectrum2.testtopper.biz:50002:s'
+ 67.82 | D | synchronizer.[default_wallet] | starting taskgroup (0x7f7ac4d6f850).
+ 67.82 | D | verifier.[default_wallet] | starting taskgroup (0x7f7ac53fcdf0).
+ 68.25 | I | n/network | fee_histogram 0
+ 79.80 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622880, detected algo=scrypt from header
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622880, algo=scrypt, found=0/91, need more headers
+ 79.80 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622881, detected algo=meowpow from header
+ 79.80 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622881, algo=meowpow, found=0/91, need more headers
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622882, detected algo=meowpow from header
+ 79.80 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.80 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622882, algo=meowpow, found=1/91, need more headers
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622883, detected algo=scrypt from header
+ 79.80 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.80 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622883, algo=scrypt, found=1/91, need more headers
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622884, detected algo=scrypt from header
+ 79.80 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.80 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.80 | I | blockchain.Blockchain | LWMA: height=1622884, algo=scrypt, found=2/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622885, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622885, algo=scrypt, found=3/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622886, detected algo=meowpow from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622886, algo=meowpow, found=2/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622887, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622887, algo=scrypt, found=4/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622888, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622888, algo=scrypt, found=5/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622889, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622889, algo=scrypt, found=6/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622890, detected algo=meowpow from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622890, algo=meowpow, found=3/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622891, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622891, algo=scrypt, found=7/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622892, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622892, algo=scrypt, found=8/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622893, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622893, algo=scrypt, found=9/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622894, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622894, algo=scrypt, found=10/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622895, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622895, algo=scrypt, found=11/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622896, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622896, algo=scrypt, found=12/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622897, detected algo=meowpow from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622897, algo=meowpow, found=4/91, need more headers
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622898, detected algo=scrypt from header
+ 79.81 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.81 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.81 | I | blockchain.Blockchain | LWMA: height=1622898, algo=scrypt, found=13/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622899, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622899, algo=meowpow, found=5/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622900, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622900, algo=scrypt, found=14/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622901, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622901, algo=scrypt, found=15/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622902, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622902, algo=meowpow, found=6/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622903, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622903, algo=scrypt, found=16/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622904, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622904, algo=scrypt, found=17/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622905, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622905, algo=meowpow, found=7/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622906, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622906, algo=scrypt, found=18/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622907, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622907, algo=scrypt, found=19/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622908, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622908, algo=scrypt, found=20/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622909, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622909, algo=meowpow, found=8/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622910, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622910, algo=scrypt, found=21/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622911, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622911, algo=scrypt, found=22/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622912, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622912, algo=meowpow, found=9/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622913, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622913, algo=meowpow, found=10/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622914, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622914, algo=meowpow, found=11/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622915, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622915, algo=meowpow, found=12/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622916, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622916, algo=meowpow, found=13/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622917, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622917, algo=meowpow, found=14/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622918, detected algo=meowpow from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622918, algo=meowpow, found=15/91, need more headers
+ 79.82 | I | blockchain.Blockchain | LWMA: height=1622919, detected algo=scrypt from header
+ 79.82 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.82 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622919, algo=scrypt, found=23/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622920, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622920, algo=meowpow, found=16/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622921, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622921, algo=meowpow, found=17/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622922, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622922, algo=scrypt, found=24/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622923, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622923, algo=meowpow, found=18/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622924, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622924, algo=meowpow, found=19/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622925, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622925, algo=meowpow, found=20/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622926, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622926, algo=scrypt, found=25/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622927, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622927, algo=scrypt, found=26/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622928, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622928, algo=meowpow, found=21/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622929, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622929, algo=meowpow, found=22/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622930, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622930, algo=scrypt, found=27/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622931, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622931, algo=scrypt, found=28/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622932, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622932, algo=scrypt, found=29/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622933, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622933, algo=scrypt, found=30/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622934, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622934, algo=scrypt, found=31/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622935, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622935, algo=meowpow, found=23/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622936, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622936, algo=meowpow, found=24/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622937, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622937, algo=meowpow, found=25/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622938, detected algo=meowpow from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622938, algo=meowpow, found=26/91, need more headers
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622939, detected algo=scrypt from header
+ 79.83 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.83 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.83 | I | blockchain.Blockchain | LWMA: height=1622939, algo=scrypt, found=32/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622940, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622940, algo=scrypt, found=33/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622941, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622941, algo=scrypt, found=34/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622942, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622942, algo=meowpow, found=27/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622943, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622943, algo=scrypt, found=35/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622944, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622944, algo=meowpow, found=28/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622945, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622945, algo=meowpow, found=29/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622946, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622946, algo=scrypt, found=36/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622947, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622947, algo=meowpow, found=30/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622948, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622948, algo=meowpow, found=31/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622949, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622949, algo=meowpow, found=32/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622950, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622950, algo=meowpow, found=33/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622951, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622951, algo=scrypt, found=37/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622952, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622952, algo=meowpow, found=34/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622953, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622953, algo=meowpow, found=35/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622954, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622954, algo=scrypt, found=38/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622955, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622955, algo=scrypt, found=39/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622956, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622956, algo=meowpow, found=36/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622957, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622957, algo=meowpow, found=37/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622958, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622958, algo=meowpow, found=38/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622959, detected algo=scrypt from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622959, algo=scrypt, found=40/91, need more headers
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622960, detected algo=meowpow from header
+ 79.84 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.84 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.84 | I | blockchain.Blockchain | LWMA: height=1622960, algo=meowpow, found=39/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622961, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622961, algo=meowpow, found=40/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622962, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622962, algo=meowpow, found=41/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622963, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622963, algo=meowpow, found=42/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622964, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622964, algo=scrypt, found=41/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622965, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622965, algo=scrypt, found=42/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622966, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622966, algo=meowpow, found=43/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622967, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622967, algo=scrypt, found=43/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622968, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622968, algo=meowpow, found=44/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622969, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622969, algo=scrypt, found=44/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622970, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622970, algo=scrypt, found=45/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622971, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622971, algo=meowpow, found=45/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622972, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622972, algo=meowpow, found=46/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622973, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622973, algo=scrypt, found=46/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622974, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622974, algo=scrypt, found=47/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622975, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622975, algo=meowpow, found=47/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622976, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622976, algo=meowpow, found=48/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622977, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622977, algo=meowpow, found=49/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622978, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622978, algo=meowpow, found=50/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622979, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622979, algo=meowpow, found=51/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622980, detected algo=scrypt from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622980, algo=scrypt, found=48/91, need more headers
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622981, detected algo=meowpow from header
+ 79.85 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.85 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.85 | I | blockchain.Blockchain | LWMA: height=1622981, algo=meowpow, found=52/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622982, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622982, algo=meowpow, found=53/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622983, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622983, algo=scrypt, found=49/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622984, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622984, algo=scrypt, found=50/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622985, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622985, algo=scrypt, found=51/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622986, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622986, algo=scrypt, found=52/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622987, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622987, algo=meowpow, found=54/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622988, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622988, algo=meowpow, found=55/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622989, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622989, algo=scrypt, found=53/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622990, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622990, algo=scrypt, found=54/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622991, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622991, algo=scrypt, found=55/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622992, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622992, algo=scrypt, found=56/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622993, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622993, algo=meowpow, found=56/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622994, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622994, algo=meowpow, found=57/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622995, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622995, algo=meowpow, found=58/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622996, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622996, algo=scrypt, found=57/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622997, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622997, algo=meowpow, found=59/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622998, detected algo=scrypt from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622998, algo=scrypt, found=58/91, need more headers
+ 79.86 | I | blockchain.Blockchain | LWMA: height=1622999, detected algo=meowpow from header
+ 79.86 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.86 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1622999, algo=meowpow, found=60/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623000, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623000, algo=scrypt, found=59/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623001, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623001, algo=scrypt, found=60/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623002, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623002, algo=scrypt, found=61/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623003, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623003, algo=scrypt, found=62/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623004, detected algo=meowpow from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623004, algo=meowpow, found=61/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623005, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623005, algo=scrypt, found=63/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623006, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623006, algo=scrypt, found=64/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623007, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623007, algo=scrypt, found=65/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623008, detected algo=meowpow from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623008, algo=meowpow, found=62/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623009, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623009, algo=scrypt, found=66/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623010, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623010, algo=scrypt, found=67/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623011, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623011, algo=scrypt, found=68/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623012, detected algo=meowpow from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623012, algo=meowpow, found=63/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623013, detected algo=scrypt from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623013, algo=scrypt, found=69/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623014, detected algo=meowpow from header
+ 79.87 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.87 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623014, algo=meowpow, found=64/91, need more headers
+ 79.87 | I | blockchain.Blockchain | LWMA: height=1623015, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623015, algo=meowpow, found=65/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623016, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623016, algo=meowpow, found=66/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623017, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623017, algo=meowpow, found=67/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623018, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623018, algo=meowpow, found=68/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623019, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623019, algo=meowpow, found=69/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623020, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623020, algo=scrypt, found=70/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623021, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623021, algo=scrypt, found=71/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623022, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623022, algo=scrypt, found=72/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623023, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623023, algo=meowpow, found=70/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623024, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623024, algo=meowpow, found=71/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623025, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623025, algo=meowpow, found=72/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623026, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623026, algo=meowpow, found=73/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623027, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623027, algo=scrypt, found=73/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623028, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623028, algo=scrypt, found=74/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623029, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623029, algo=scrypt, found=75/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623030, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623030, algo=meowpow, found=74/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623031, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623031, algo=scrypt, found=76/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623032, detected algo=scrypt from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623032, algo=scrypt, found=77/91, need more headers
+ 79.88 | I | blockchain.Blockchain | LWMA: height=1623033, detected algo=meowpow from header
+ 79.88 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.88 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623033, algo=meowpow, found=75/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623034, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623034, algo=meowpow, found=76/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623035, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623035, algo=scrypt, found=78/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623036, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623036, algo=scrypt, found=79/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623037, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623037, algo=scrypt, found=80/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623038, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623038, algo=meowpow, found=77/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623039, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623039, algo=meowpow, found=78/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623040, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623040, algo=meowpow, found=79/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623041, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623041, algo=scrypt, found=81/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623042, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623042, algo=scrypt, found=82/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623043, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623043, algo=meowpow, found=80/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623044, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623044, algo=meowpow, found=81/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623045, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623045, algo=meowpow, found=82/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623046, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623046, algo=scrypt, found=83/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623047, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623047, algo=meowpow, found=83/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623048, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623048, algo=scrypt, found=84/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623049, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623049, algo=scrypt, found=85/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623050, detected algo=meowpow from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623050, algo=meowpow, found=84/91, need more headers
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623051, detected algo=scrypt from header
+ 79.89 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.89 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.89 | I | blockchain.Blockchain | LWMA: height=1623051, algo=scrypt, found=86/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623052, detected algo=scrypt from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623052, algo=scrypt, found=87/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623053, detected algo=scrypt from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623053, algo=scrypt, found=88/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623054, detected algo=scrypt from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623054, algo=scrypt, found=89/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623055, detected algo=meowpow from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623055, algo=meowpow, found=85/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623056, detected algo=scrypt from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623056, algo=scrypt, found=90/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623057, detected algo=scrypt from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623058, detected algo=scrypt from header
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623059, detected algo=meowpow from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623059, algo=meowpow, found=86/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623060, detected algo=scrypt from header
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623061, detected algo=scrypt from header
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623062, detected algo=scrypt from header
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623063, detected algo=scrypt from header
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623064, detected algo=meowpow from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623064, algo=meowpow, found=87/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623065, detected algo=meowpow from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623065, algo=meowpow, found=88/91, need more headers
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623066, detected algo=scrypt from header
+ 79.90 | I | blockchain.Blockchain | LWMA: height=1623067, detected algo=meowpow from header
+ 79.90 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.90 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.91 | I | blockchain.Blockchain | LWMA: height=1623067, algo=meowpow, found=89/91, need more headers
+ 79.91 | I | blockchain.Blockchain | LWMA: height=1623068, detected algo=meowpow from header
+ 79.91 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.91 | I | blockchain | get_block_algo: h=1622880, version=0x30090100, bit8=True, is_auxpow=True, algo=scrypt
+ 79.91 | I | blockchain.Blockchain | LWMA: height=1623068, algo=meowpow, found=90/91, need more headers
+ 79.91 | I | blockchain.Blockchain | LWMA: height=1623069, detected algo=meowpow from header
+ 79.91 | I | blockchain | get_block_algo: h=1622881, version=0x30090000, bit8=False, is_auxpow=False, algo=meowpow
+ 79.91 | E | blockchain.Blockchain | Header validation FAILED at height 1623069:
+ 79.91 | E | blockchain.Blockchain |   Algorithm: meowpow
+ 79.91 | E | blockchain.Blockchain |   Version: 0x30090000
+ 79.91 | E | blockchain.Blockchain |   Bits: 0x1c00ea4e
+ 79.91 | E | blockchain.Blockchain |   Target used: 79974113805835534764863428505880159898553845310068311135525821791
+ 79.91 | E | blockchain.Blockchain |   Error: bits mismatch: 469811816 vs 469822030
+ 79.91 | I | blockchain.Blockchain | verify_chunk from height 1622880 failed: InvalidHeader('bits mismatch: 469811816 vs 469822030')
+ 79.91 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | requesting block header 1622880 in mode catchup
+129.82 | E | synchronizer.[default_wallet] | taskgroup died (0x7f7ac4d6f850). exc=RPCError(-102, 'server busy - request timed out')
+129.82 | D | synchronizer.[default_wallet] | taskgroup stopped (0x7f7ac4d6f850).
+129.82 | D | verifier.[default_wallet] | taskgroup stopped (0x7f7ac53fcdf0).
+129.90 | W | i/interface.[meowelectrum2.testtopper.biz:50002] | disconnecting due to GracefulDisconnect(RPCError(-102, 'server busy - request timed out'))
+129.95 | I | n/network | connecting to meowelectrum2.testtopper.biz:50002:s as new interface
+130.53 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | connection established. version: ['ElectrumX Ravencoin 1.12', '1.11']
+131.11 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | set blockchain with height 1622879
+131.11 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | Large sync gap detected: blockchain at 1622879, server at 1625443
+131.11 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | Starting sequential sync from 1622880
+131.11 | I | i/interface.[meowelectrum2.testtopper.biz:50002] | requesting chunk from height 1622880
+131.11 | I | n/network | switching to meowelectrum2.testtopper.biz:50002:s
+131.11 | D | synchronizer.[default_wallet] | stopping. full_shutdown=False
