@@ -112,16 +112,10 @@ def deserialize_header(s: bytes, height: int) -> dict:
             # This is an AuxPOW block (80 bytes) - nonce is at position 76-80 (4 bytes)
             nonce_bytes = s[76:80]
             h['nonce'] = int(hash_encode(nonce_bytes), 16)
-            # Debug: log nonce value for AuxPoW blocks
-            if h['nonce'] > 0xFFFFFFFF:
-                print(f"DEBUG: AuxPoW nonce too large: {h['nonce']} (hex: {hash_encode(nonce_bytes)})")
         else:
             # Legacy block (80 bytes) - nonce is at position 76-80 (4 bytes)
             nonce_bytes = s[76:80]
             h['nonce'] = int(hash_encode(nonce_bytes), 16)
-            # Debug: log nonce value for legacy blocks
-            if h['nonce'] > 0xFFFFFFFF:
-                print(f"DEBUG: Legacy nonce too large: {h['nonce']} (hex: {hash_encode(nonce_bytes)})")
     
     h['block_height'] = height
     return h
@@ -194,18 +188,12 @@ def hash_raw_header_meowpow(header: str) -> str:
 
 
 def hash_raw_header_auxpow(header: str) -> str:
-    """Hash for AuxPOW blocks using Scrypt-1024-1-1-256 on first 80 bytes"""
-    import hashlib
+    """Hash for AuxPOW blocks using double SHA256 on first 80 bytes"""
+    from .crypto import sha256d
     header_bytes = bfh(header)[:80]  # Use only first 80 bytes for AuxPOW
-    # Scrypt-1024-1-1-256 (N=1024, r=1, p=1, dklen=32)
-    # Match server implementation: return raw bytes, then encode
-    try:
-        scrypt_hash = hashlib.scrypt(header_bytes, salt=header_bytes, n=1024, r=1, p=1, dklen=32)
-    except AttributeError:
-        # Fallback if scrypt not available - use double_sha256 like server
-        from .crypto import sha256d
-        scrypt_hash = sha256d(header_bytes)
-    return hash_encode(scrypt_hash)
+    # AuxPOW headers use simple double SHA256, like Bitcoin
+    # The actual mining work was done on parent chain (e.g., Litecoin)
+    return hash_encode(sha256d(header_bytes))
 
 
 # key: blockhash hex at forkpoint
@@ -439,15 +427,11 @@ class Blockchain(Logger):
             raise InvalidHeader(f"insufficient proof of work: {block_hash_as_num} vs target {target}")
 
     def verify_chunk(self, start_height: int, data: bytes) -> None:
-        # DEBUG: Log chunk processing details
-        self.logger.info(f'DEBUG verify_chunk: start_height={start_height}, data_len={len(data)}')
-        
         raw = []
         p = 0
         s = start_height
         prev_hash = self.get_hash(start_height - 1)
         headers = {}
-        header_count = 0
         
         while p < len(data):
             # Determine expected header length *before* slicing so we stay aligned
@@ -457,9 +441,6 @@ class Blockchain(Logger):
                 version_int = int.from_bytes(data[p:p+4], byteorder='little', signed=False)
                 is_auxpow = bool(version_int & (1 << 8))
                 header_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
-                # DEBUG: Log AuxPOW detection
-                if header_count < 5 or header_count % 500 == 0:  # Log first few and every 500th
-                    self.logger.info(f'DEBUG header {header_count}: height={s}, version=0x{version_int:08x}, is_auxpow={is_auxpow}, header_len={header_len}')
             elif s >= constants.net.KawpowActivationHeight:
                 header_len = HEADER_SIZE  # post-Kawpow headers always 120 bytes
             else:
@@ -468,14 +449,11 @@ class Blockchain(Logger):
 
             raw = data[p:p + header_len]
             
-            # DEBUG: Check for incomplete header at end
+            # Check for incomplete header at end
             if len(raw) < header_len:
-                self.logger.error(f'DEBUG: Incomplete header at position {p}: got {len(raw)} bytes, expected {header_len}')
-                self.logger.error(f'DEBUG: Remaining data: {len(data) - p} bytes')
                 break  # Exit loop instead of processing incomplete header
                 
             p += header_len
-            header_count += 1
             try:
                 expected_header_hash = self.get_hash(s)
             except MissingHeader:
@@ -501,17 +479,10 @@ class Blockchain(Logger):
             prev_hash = hash_header(header)
             s += 1
 
-        # DEBUG: Log final counts before DGW validation
-        processed_headers = s - start_height
-        self.logger.info(f'DEBUG verify_chunk: processed {processed_headers} headers (expected {constants.net.DGW_CHECKPOINTS_SPACING})')
-        self.logger.info(f'DEBUG verify_chunk: bytes processed={p}, total data={len(data)}')
-        
         # DGW must be received in correct chunk sizes to be valid with our checkpoints
         if constants.net.DGW_CHECKPOINTS_START <= start_height <= constants.net.max_checkpoint():
-            assert start_height % constants.net.DGW_CHECKPOINTS_SPACING == 0, f'dgw chunk not from start: {start_height} % {constants.net.DGW_CHECKPOINTS_SPACING} != 0'
-            if processed_headers != constants.net.DGW_CHECKPOINTS_SPACING:
-                self.logger.error(f'DEBUG DGW chunk size mismatch: got {processed_headers}, expected {constants.net.DGW_CHECKPOINTS_SPACING}')
-            assert processed_headers == constants.net.DGW_CHECKPOINTS_SPACING, f'dgw chunk not correct size: got {processed_headers}, expected {constants.net.DGW_CHECKPOINTS_SPACING}'
+            assert start_height % constants.net.DGW_CHECKPOINTS_SPACING == 0, 'dgw chunk not from start'
+            assert s - start_height == constants.net.DGW_CHECKPOINTS_SPACING, 'dgw chunk not correct size'
 
     @with_lock
     def path(self):
