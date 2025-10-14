@@ -762,7 +762,14 @@ class Blockchain(Logger):
         data = bfh(serialize_header(header))
         # headers are only _appended_ to the end:
         assert delta == self.size(), (delta, self.size())
-        assert len(data) == HEADER_SIZE
+        
+        # CRITICAL: Pad AuxPOW headers to HEADER_SIZE for consistent file offsets
+        # AuxPOW headers are 80 bytes, but we store all headers as 120 bytes
+        if len(data) == LEGACY_HEADER_SIZE:  # 80 bytes (AuxPOW or legacy)
+            # Pad to 120 bytes for storage only
+            data = data + bytes(HEADER_SIZE - LEGACY_HEADER_SIZE)
+        
+        assert len(data) == HEADER_SIZE, f"Header length {len(data)} != {HEADER_SIZE}"
         self.write(data, delta*HEADER_SIZE)
         self.swap_with_parent()
 
@@ -784,6 +791,17 @@ class Blockchain(Logger):
                 raise Exception('Expected to read a full header. This was only {} bytes'.format(len(h)))
         if h == bytes([0])*HEADER_SIZE:
             return None
+        
+        # CRITICAL: Unpad AuxPOW headers before deserializing
+        # AuxPOW headers are stored as 120 bytes (padded) but need to be read as 80 bytes
+        if height >= constants.net.AuxPowActivationHeight and len(h) == HEADER_SIZE:
+            # Check if this looks like a padded AuxPOW header (version bit 8 set)
+            version_int = int.from_bytes(h[0:4], byteorder='little')
+            if version_int & (1 << 8):  # AuxPOW bit set
+                # Check if last 40 bytes are padding (all zeros)
+                if h[LEGACY_HEADER_SIZE:] == bytes(HEADER_SIZE - LEGACY_HEADER_SIZE):
+                    h = h[:LEGACY_HEADER_SIZE]  # Remove padding
+        
         return deserialize_header(h, height)
 
     def header_at_tip(self) -> Optional[dict]:
