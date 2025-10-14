@@ -1058,6 +1058,10 @@ class Blockchain(Logger):
         if height == 1622881:
             block_heights = [b.get('block_height', '?') for b in same_algo_blocks]
             self.logger.info(f'LWMA DEBUG h={height}: collected blocks: {block_heights[:10]}...{block_heights[-10:]}')
+            # Log first 3 blocks in detail
+            for i in range(min(3, len(same_algo_blocks))):
+                blk = same_algo_blocks[i]
+                self.logger.info(f'LWMA DEBUG h={height}: block[{i}] height={blk.get("block_height")}, ts={blk.get("timestamp")}, bits=0x{blk.get("bits"):08x}')
         
         # Calculate LWMA-1
         sum_targets = 0
@@ -1108,7 +1112,16 @@ class Blockchain(Logger):
             self.logger.info(f'LWMA CALC h={height}: N={N}, T={T}, k={k}')
             self.logger.info(f'LWMA CALC h={height}: sum_targets={sum_targets}, avg_target={avg_target}')
             self.logger.info(f'LWMA CALC h={height}: sum_weighted_solvetimes={sum_weighted_solvetimes}')
+            # Calculate step by step like the daemon
+            intermediate = avg_target * sum_weighted_solvetimes
+            self.logger.info(f'LWMA CALC h={height}: avg_target * sum_weighted_solvetimes = {intermediate}')
+            final = intermediate // k
+            self.logger.info(f'LWMA CALC h={height}: intermediate // k = {final}')
             self.logger.info(f'LWMA CALC h={height}: next_target={next_target}, next_bits=0x{next_bits:08x}')
+            # Convert daemon's expected bits to target for comparison
+            daemon_bits = 0x1c009817
+            daemon_target = self.bits_to_target(daemon_bits)
+            self.logger.info(f'LWMA CALC h={height}: daemon expects bits=0x{daemon_bits:08x}, target={daemon_target}')
         
         return next_target
 
