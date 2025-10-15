@@ -611,6 +611,13 @@ class Blockchain(Logger):
                 self.logger.error(f'  Bits: 0x{header["bits"]:08x}')
                 self.logger.error(f'  Target used: {target}')
                 self.logger.error(f'  Error: {e}')
+                # DEBUG: For PoW failures, show header details
+                if 'insufficient proof of work' in str(e):
+                    header_hash = hash_header(header)
+                    self.logger.error(f'  Header hash: {header_hash}')
+                    self.logger.error(f'  Timestamp: {header.get("timestamp")}')
+                    self.logger.error(f'  Nonce: {header.get("nonce", "N/A")} / Nonce64: {header.get("nonce64", "N/A")}')
+                    self.logger.error(f'  Is AuxPOW: {bool(header["version"] & (1 << 8))}')
                 raise
             prev_hash = hash_header(header)
             s += 1
@@ -1079,7 +1086,7 @@ class Blockchain(Logger):
         same_algo_blocks.reverse()
         
         # DEBUG: Log block heights used for LWMA calculation
-        if height == 1623069:
+        if height in (1623069, 1623075):
             block_heights = [blk.get('block_height', 'unknown') for blk in same_algo_blocks]
             self.logger.error(f'LWMA DEBUG at {height}: Using {len(same_algo_blocks)} blocks: {block_heights[:5]}...{block_heights[-5:]}')
         
@@ -1128,8 +1135,8 @@ class Blockchain(Logger):
         first_h = same_algo_blocks[0].get('block_height', 'unknown')
         last_h = same_algo_blocks[-1].get('block_height', 'unknown')
         
-        # DEBUG: Detailed logging for specific height
-        if height == 1623069:
+        # DEBUG: Detailed logging for specific heights
+        if height in (1623069, 1623075):
             self.logger.error(f'LWMA CALC at {height}:')
             self.logger.error(f'  N={N}, T={T}, k={k}')
             self.logger.error(f'  sum_targets={sum_targets}')
