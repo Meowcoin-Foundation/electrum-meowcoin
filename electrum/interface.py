@@ -434,6 +434,16 @@ class Interface(Logger):
     def __str__(self):
         return f"<Interface {self.diagnostic_name()}>"
 
+    async def get_current_server_height(self) -> int:
+        """Query current server height directly (not via notifications)"""
+        try:
+            res = await self.session.send_request('blockchain.headers.subscribe', [])
+            if res and isinstance(res, dict) and 'height' in res:
+                return res['height']
+        except Exception as e:
+            self.logger.warning(f"Failed to get current server height: {e}")
+        return self.tip  # Fallback to last known tip
+
     async def is_server_ca_signed(self, ca_ssl_context):
         """Given a CA enforcing SSL context, returns True if the connection
         can be established. Returns False if the server has a self-signed
@@ -852,12 +862,25 @@ class Interface(Logger):
                 self.logger.info(f"Starting sequential sync from {blockchain_height + 1}")
                 await self.sync_until(blockchain_height + 1)
                 
-                # CRITICAL FIX: After sync_until completes, check if we caught up
-                # Server may have advanced during sync, need to continue
-                final_blockchain_height = self.blockchain.height()
-                if final_blockchain_height < self.tip:
-                    self.logger.info(f"Continuing sync: blockchain at {final_blockchain_height}, server at {self.tip}")
-                    await self.sync_until(final_blockchain_height + 1)
+                # CRITICAL FIX: After sync_until completes, check current server height
+                # Server may have advanced significantly during sync
+                try:
+                    current_server_height = await self.get_current_server_height()
+                    final_blockchain_height = self.blockchain.height()
+                    if current_server_height > self.tip:
+                        self.logger.info(f"Post-sync server height query: {current_server_height} > {self.tip}, updating self.tip")
+                        self.tip = current_server_height
+                    
+                    if final_blockchain_height < current_server_height:
+                        self.logger.info(f"Continuing sync: blockchain at {final_blockchain_height}, actual server at {current_server_height}")
+                        await self.sync_until(final_blockchain_height + 1)
+                except Exception as e:
+                    self.logger.warning(f"Failed to query server height after sync: {e}")
+                    # Fallback to old behavior
+                    final_blockchain_height = self.blockchain.height()
+                    if final_blockchain_height < self.tip:
+                        self.logger.info(f"Continuing sync: blockchain at {final_blockchain_height}, server at {self.tip}")
+                        await self.sync_until(final_blockchain_height + 1)
                 
                 return True
             else:
@@ -877,13 +900,21 @@ class Interface(Logger):
         iteration = 0
         while last is None or height <= next_height:
             iteration += 1
-            # CRITICAL FIX: Chase moving server tip dynamically
-            # Don't use stale next_height from connection time, use current self.tip
-            current_tip = self.tip
-            if current_tip > next_height:
-                self.logger.info(f'sync_until: Server tip moved from {next_height} to {current_tip}, updating target')
-                next_height = current_tip
+            # CRITICAL FIX: Query current server height actively (every 5 iterations)
+            # Don't rely on passive notifications that may be delayed/missing
+            if iteration % 5 == 1:  # Query on first iteration and every 5th 
+                try:
+                    current_server_height = await self.get_current_server_height()
+                    if current_server_height > self.tip:
+                        self.logger.info(f'sync_until: Server height query: {current_server_height} > {self.tip}, updating self.tip')
+                        self.tip = current_server_height
+                        if current_server_height > next_height:
+                            next_height = current_server_height
+                            self.logger.info(f'sync_until: Updated target to {next_height}')
+                except Exception as e:
+                    self.logger.warning(f'sync_until: Failed to query server height: {e}')
             
+            current_tip = self.tip
             self.logger.info(f'sync_until: iteration {iteration}, height={height}, next_height={next_height}, last={last}, server_tip={current_tip}')
             prev_last, prev_height = last, height
             if next_height > height + 10:
