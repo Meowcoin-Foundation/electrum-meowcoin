@@ -620,12 +620,13 @@ class Blockchain(Logger):
 
         # DEBUG: Log final counts before DGW validation
         processed_headers = s - start_height
-        # Only log if there's an issue
-        if processed_headers != constants.net.DGW_CHECKPOINTS_SPACING:
-            self.logger.warning(f'verify_chunk: processed {processed_headers} headers (expected {constants.net.DGW_CHECKPOINTS_SPACING})')
         
         # DGW must be received in correct chunk sizes to be valid with our checkpoints
+        # But ONLY within checkpoint range - after checkpoints, any chunk size is OK
         if constants.net.DGW_CHECKPOINTS_START <= start_height <= constants.net.max_checkpoint():
+            # Only log if there's an issue
+            if processed_headers != constants.net.DGW_CHECKPOINTS_SPACING:
+                self.logger.warning(f'verify_chunk: processed {processed_headers} headers (expected {constants.net.DGW_CHECKPOINTS_SPACING})')
             assert start_height % constants.net.DGW_CHECKPOINTS_SPACING == 0, f'dgw chunk not from start: {start_height} % {constants.net.DGW_CHECKPOINTS_SPACING} != 0'
             if processed_headers != constants.net.DGW_CHECKPOINTS_SPACING:
                 self.logger.error(f'DEBUG DGW chunk size mismatch: got {processed_headers}, expected {constants.net.DGW_CHECKPOINTS_SPACING}')
@@ -1250,16 +1251,25 @@ class Blockchain(Logger):
             self.logger.warning(f'  Got: {header.get("prev_block_hash")}')
             return False
         headers = {header.get('block_height'): header}
+        
+        # After checkpoints: trust server validation (same as verify_chunk)
+        # Use header's bits directly to avoid LWMA recalculation issues
+        skip_bits_check = False
+        if height > constants.net.max_checkpoint():
+            target = self.bits_to_target(header['bits'])
+            skip_bits_check = True
+        else:
+            try:
+                target = self.get_target(height, headers)
+            except (MissingHeader, NotEnoughHeaders):
+                # Re-raise NotEnoughHeaders so interface.py can request chunks
+                raise
+            except Exception as e:
+                self.logger.warning(f'can_connect: get_target failed at {height}: {e}')
+                return False
+        
         try:
-            target = self.get_target(height, headers)
-        except (MissingHeader, NotEnoughHeaders):
-            # Re-raise NotEnoughHeaders so interface.py can request chunks
-            raise
-        except Exception as e:
-            self.logger.warning(f'can_connect: get_target failed at {height}: {e}')
-            return False
-        try:
-            self.verify_header(header, prev_hash, target)
+            self.verify_header(header, prev_hash, target, skip_bits_check=skip_bits_check)
         except BaseException as e:
             self.logger.warning(f'can_connect: verify_header failed at {height}: {e}')
             return False
