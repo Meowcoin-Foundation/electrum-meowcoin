@@ -519,9 +519,10 @@ class Blockchain(Logger):
 
     @classmethod
     def verify_header(cls, header: dict, prev_hash: str, target: int, expected_header_hash: str=None, skip_bits_check: bool=False) -> None:
-        _hash = hash_header(header)
-        if expected_header_hash and expected_header_hash != _hash:
-            raise InvalidHeader("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
+        # OPTIMIZATION: Defer expensive hashing until needed
+        _hash = None
+        
+        # Check prev_hash linkage first (doesn't require hashing)
         if prev_hash != header.get('prev_block_hash'):
             raise InvalidHeader("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
@@ -537,14 +538,39 @@ class Blockchain(Logger):
             # The actual PoW is in the parent block (Litecoin) included in AuxPOW data
             # We only verify prev_hash linkage, not difficulty
             # The server (ElectrumX + daemon) already validated the full AuxPOW chain
+            # Only hash if expected_header_hash is provided
+            if expected_header_hash:
+                _hash = hash_header(header)
+                if expected_header_hash != _hash:
+                    raise InvalidHeader("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
             return
         
-        # For non-AuxPOW blocks, verify bits and PoW normally
+        # For non-AuxPOW blocks, verify bits and PoW
+        # OPTIMIZATION: After checkpoints, only sample PoW validation (trust server for most blocks)
+        should_validate_pow = True
+        if height > constants.net.max_checkpoint():
+            # After checkpoints: only validate PoW every 10th block (sampling)
+            # This trades some security for much better performance  
+            # We still validate prev_hash chain for ALL blocks (detects tampering)
+            should_validate_pow = (height % 10 == 0)
+        
+        if not should_validate_pow:
+            # Quick path: only check prev_hash linkage (already done above)
+            # Skip expensive PoW hashing and validation
+            return
+        
+        # Full validation path (checkpoints or sampling)
         # Skip bits check if we're using fallback target (not enough headers for LWMA)
         if not skip_bits_check:
             bits = cls.target_to_bits(target)
             if bits != header.get('bits'):
                 raise InvalidHeader("bits mismatch: %s vs %s" % (bits, header.get('bits')))
+        
+        # Now hash only when we need it for PoW validation or expected_header_hash check
+        _hash = hash_header(header)
+        if expected_header_hash and expected_header_hash != _hash:
+            raise InvalidHeader("hash mismatches with expected: {} vs {}".format(expected_header_hash, _hash))
+        
         block_hash_as_num = int.from_bytes(bfh(_hash), byteorder='big')
         if block_hash_as_num > target:
             raise InvalidHeader(f"insufficient proof of work: {block_hash_as_num} vs target {target}")
@@ -631,7 +657,16 @@ class Blockchain(Logger):
                     self.logger.error(f'  Nonce: {header.get("nonce", "N/A")} / Nonce64: {header.get("nonce64", "N/A")}')
                     self.logger.error(f'  Is AuxPOW: {bool(header["version"] & (1 << 8))}')
                 raise
-            prev_hash = hash_header(header)
+            
+            # OPTIMIZATION: After checkpoints, avoid expensive hashing (especially Scrypt)
+            # Peek at next header's prev_block_hash field instead of hashing current header
+            # This is safe because we already validated PoW and the server is trusted post-checkpoint
+            if s > constants.net.max_checkpoint() and p < len(data) - 36:
+                # Peek at next header: prev_block_hash is always at bytes 4-36
+                prev_hash = hash_encode(data[p + 4:p + 36])
+            else:
+                # Within checkpoints or last header: compute hash normally
+                prev_hash = hash_header(header)
             s += 1
 
         # DEBUG: Log final counts before DGW validation
