@@ -643,7 +643,15 @@ class Interface(Logger):
             return
 
         self.logger.info(f"requesting chunk from height {height}")
-        size = 2016
+        
+        # CRITICAL: After checkpoints, use smaller chunks to avoid server timeout
+        # Post-checkpoint blocks require full LWMA validation on server (expensive!)
+        # 2016 blocks × 90 LWMA lookups = ~180k operations = >60sec timeout
+        if height > constants.net.max_checkpoint():
+            size = 256  # Smaller chunks post-checkpoint to prevent server timeout
+        else:
+            size = 2016  # Full chunks within checkpoint region
+        
         if tip is not None:
             size = min(size, tip - height + 1)
             size = max(size, 0)
