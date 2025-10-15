@@ -822,9 +822,13 @@ class Interface(Logger):
     async def sync_until(self, height, next_height=None):
         if next_height is None:
             next_height = self.tip
+        self.logger.info(f'sync_until: starting from height {height}, target {next_height} (server tip: {self.tip})')
         last = None
         got_less_than_spacing = False
+        iteration = 0
         while last is None or height <= next_height:
+            iteration += 1
+            self.logger.info(f'sync_until: iteration {iteration}, height={height}, next_height={next_height}, last={last}')
             prev_last, prev_height = last, height
             if next_height > height + 10:
 
@@ -834,6 +838,7 @@ class Interface(Logger):
                     height = (height // constants.net.DGW_CHECKPOINTS_SPACING) * constants.net.DGW_CHECKPOINTS_SPACING
 
                 could_connect, num_headers = await self.request_chunk(height, next_height)
+                self.logger.info(f'sync_until: request_chunk({height}) returned: could_connect={could_connect}, num_headers={num_headers}')
 
                 if not could_connect:
                     if height <= constants.net.max_checkpoint():
@@ -843,13 +848,17 @@ class Interface(Logger):
 
                 util.trigger_callback('network_updated')
                 got_less_than_spacing = num_headers < constants.net.DGW_CHECKPOINTS_SPACING
+                old_height = height
                 height = height + num_headers
+                self.logger.info(f'sync_until: processed {num_headers} headers: {old_height} -> {height} (target: {next_height})')
                 assert height <= next_height+1, (height, self.tip)
                 last = 'catchup'
             else:
                 last, height = await self.step(height)
             assert (prev_last, prev_height) != (last, height), 'had to prevent infinite loop in interface.sync_until'
 
+        self.logger.info(f'sync_until: FINISHED - final height={height}, target was {next_height}, last={last}')
+        self.logger.info(f'sync_until: Loop exit reason - last is None: {last is None}, height <= next_height: {height <= next_height}')
         return last, height
     
 
