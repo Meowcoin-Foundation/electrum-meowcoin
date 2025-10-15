@@ -154,10 +154,26 @@ def deserialize_header(s: bytes, height: int) -> dict:
          'bits': int(hash_encode(s[72:76]), 16)}
     
     # Handle different header types based on length and version bit
-    if len(s) == HEADER_SIZE:  # 120 bytes - KawPow/MeowPow
-        h['nheight'] = int(hash_encode(s[76:80]), 16)
-        h['nonce'] = int(hash_encode(s[80:88]), 16)
-        h['mix_hash'] = hash_encode(s[88:120])
+    if len(s) == HEADER_SIZE:  # 120 bytes - could be MeowPow OR padded AuxPOW
+        # CRITICAL: Check if this is a padded AuxPOW header
+        version_int = h['version']
+        is_auxpow_padded = False
+        
+        if height >= constants.net.AuxPowActivationHeight and (version_int & (1 << 8)):
+            # Check if last 40 bytes are padding (all zeros)
+            if s[LEGACY_HEADER_SIZE:] == bytes(HEADER_SIZE - LEGACY_HEADER_SIZE):
+                # This is a padded AuxPOW header - treat as 80 bytes
+                is_auxpow_padded = True
+        
+        if not is_auxpow_padded:
+            # Real MeowPow header (120 bytes)
+            h['nheight'] = int(hash_encode(s[76:80]), 16)
+            h['nonce'] = int(hash_encode(s[80:88]), 16)
+            h['mix_hash'] = hash_encode(s[88:120])
+        else:
+            # Padded AuxPOW header - nonce is at position 76-80 (4 bytes)
+            nonce_bytes = s[76:80]
+            h['nonce'] = int(hash_encode(nonce_bytes), 16)
     else:  # 80 bytes - could be AuxPOW or legacy
         # AuxPOW blocks are identified by version bit AND height
         version_int = h['version']
