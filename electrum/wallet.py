@@ -541,7 +541,17 @@ class Abstract_Wallet(ABC, Logger, EventListener):
         if self.adb != adb:
             return
         num_new_addrs = await run_in_thread(self.synchronize)
-        up_to_date = self.adb.is_up_to_date() and num_new_addrs == 0
+        
+        # CRITICAL FIX: Also check blockchain sync status, not just address/tx sync
+        # Address sync can complete while blockchain headers are still catching up
+        blockchain_synced = True
+        if self.network:
+            local_height = self.network.get_local_height()
+            server_height = self.network.get_server_height()
+            # Consider synced if within 1 block (server may have moved forward)
+            blockchain_synced = abs(local_height - server_height) <= 1
+        
+        up_to_date = self.adb.is_up_to_date() and num_new_addrs == 0 and blockchain_synced
         with self.lock:
             status_changed = self._up_to_date != up_to_date
             self._up_to_date = up_to_date
@@ -553,7 +563,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
             util.trigger_callback('wallet_updated', self)
             util.trigger_callback('status')
         if status_changed:
-            self.logger.info(f'set_up_to_date: {up_to_date}')
+            self.logger.info(f'set_up_to_date: {up_to_date} (blockchain_synced={blockchain_synced}, local={local_height if self.network else None}, server={server_height if self.network else None})')
 
     @event_listener
     def on_event_adb_added_tx(self, adb, tx_hash: str, tx: Transaction):

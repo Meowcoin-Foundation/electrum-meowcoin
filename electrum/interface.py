@@ -819,10 +819,18 @@ class Interface(Logger):
             # Sync sequentially from where blockchain left off
             blockchain_height = self.blockchain.height()
             if height > blockchain_height + 1:
-                # Large gap: start syncing from blockchain height + 1, not from tip
+                # Large gap: start syncing from blockchain height + 1
                 self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
                 self.logger.info(f"Starting sequential sync from {blockchain_height + 1}")
                 await self.sync_until(blockchain_height + 1)
+                
+                # CRITICAL FIX: After sync_until completes, check if we caught up
+                # Server may have advanced during sync, need to continue
+                final_blockchain_height = self.blockchain.height()
+                if final_blockchain_height < self.tip:
+                    self.logger.info(f"Continuing sync: blockchain at {final_blockchain_height}, server at {self.tip}")
+                    await self.sync_until(final_blockchain_height + 1)
+                
                 return True
             else:
                 # Small gap: can process tip header directly
