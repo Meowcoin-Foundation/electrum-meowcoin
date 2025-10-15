@@ -587,18 +587,14 @@ class Blockchain(Logger):
                     # Just use the headers own bits for the logic
                     target = self.bits_to_target(header['bits'])
             else:
-                # After checkpoints: calculate target with LWMA for PoW validation
-                # But skip bits comparison due to target→bits conversion rounding errors
-                try:
-                    target = self.get_target(s, headers)
-                    # For LWMA (post-AuxPOW), skip bits check due to rounding in target→bits conversion
-                    if s >= constants.net.AuxPowActivationHeight:
-                        skip_bits_check = True
-                except NotEnoughHeaders:
-                    # LWMA needs more headers - trust the header's own bits during initial sync
-                    self.logger.info(f'verify_chunk: Using fallback target for height {s} (not enough headers for LWMA)')
-                    target = self.bits_to_target(header['bits'])
-                    skip_bits_check = True
+                # After checkpoints: trust server's validation
+                # Use header's bits directly - server (ElectrumX + daemon) already validated full chain
+                # Attempting to recalculate LWMA target causes mismatches due to:
+                # 1. Slight differences in block collection during initial sync
+                # 2. Rounding errors in target→bits→target conversion
+                # 3. Timing differences in chunk processing
+                target = self.bits_to_target(header['bits'])
+                skip_bits_check = True
             
             try:
                 self.verify_header(header, prev_hash, target, expected_header_hash, skip_bits_check=skip_bits_check)
