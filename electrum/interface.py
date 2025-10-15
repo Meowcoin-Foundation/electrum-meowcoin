@@ -26,6 +26,7 @@ import os
 import re
 import ssl
 import sys
+import time
 import traceback
 import asyncio
 import socket
@@ -379,6 +380,11 @@ class Interface(Logger):
         self.cert_path = _get_cert_path_for_host(config=network.config, host=self.host)
         self.blockchain = None  # type: Optional[Blockchain]
         self._requested_chunks = set()  # type: Set[int]
+        
+        # ADAPTIVE CHUNK SIZING: Reduce chunk size after timeouts
+        self._recent_timeout_count = 0  # Count timeouts in recent window
+        self._last_successful_chunk_time = time.time()  # Track when we last succeeded
+        
         self.network = network
         self.session = None  # type: Optional[NotificationSession]
         self._ipaddr_bucket = None
@@ -644,16 +650,19 @@ class Interface(Logger):
 
         self.logger.info(f"requesting chunk from height {height}")
         
-        # CRITICAL: After checkpoints, use smaller chunks to balance speed vs timeout risk
-        # Client now optimized (skips 90% of hashing), but server may still be slow
-        # Testing results:
-        #   2016 blocks: >60sec timeout (server LWMA validation heavy)
-        #   256 blocks:  >60sec timeout  
-        #   64 blocks:   >60sec timeout at some heights
-        #   32 blocks:   Works but slow (~30-40 min total sync)
-        # With client optimization: try 128 blocks (10x less hashing than before)
+        # CRITICAL: ADAPTIVE chunk sizing based on recent timeout history
+        # Some regions have high Scrypt density causing server LWMA timeout
+        # Strategy: Reduce chunk size progressively after timeouts
         if height > constants.net.max_checkpoint():
-            size = 128  # Optimized chunks (client now 10x faster, server may vary)
+            # Start with 128, reduce based on recent timeout count
+            if self._recent_timeout_count >= 3:
+                size = 32  # Very problematic region (multiple recent timeouts)
+            elif self._recent_timeout_count >= 1:
+                size = 64  # Problematic region (some recent timeouts)
+            else:
+                size = 128  # Optimistic (no recent timeouts)
+            
+            self.logger.info(f"Adaptive chunk size: {size} (recent timeouts: {self._recent_timeout_count})")
         else:
             size = 2016  # Full chunks within checkpoint region
         
@@ -663,6 +672,13 @@ class Interface(Logger):
         try:
             self._requested_chunks.add((height, height + size))            
             res = await self.session.send_request('blockchain.block.headers', [height, size])
+        except aiorpcx.jsonrpc.RPCError as e:
+            # CRITICAL: Track server timeouts to adaptively reduce chunk size
+            if e.code == JSONRPC.SERVER_BUSY and 'timed out' in str(e):
+                if height > constants.net.max_checkpoint():
+                    self._recent_timeout_count += 1
+                    self.logger.warning(f"Server timeout at height {height}, increasing timeout count to {self._recent_timeout_count}")
+            raise  # Re-raise to trigger disconnection
         finally:
             self._requested_chunks.discard((height, height + size))        
         assert_dict_contains_field(res, field_name='count')
@@ -693,6 +709,14 @@ class Interface(Logger):
 
         if not conn:
             return conn, 0
+        
+        # SUCCESS: Reduce timeout counter (decay back to optimistic sizing)
+        if height > constants.net.max_checkpoint():
+            if self._recent_timeout_count > 0:
+                self._recent_timeout_count -= 1  # Decay timeout count on success
+                self.logger.info(f"Chunk success at {height}, timeout count reduced to {self._recent_timeout_count}")
+            self._last_successful_chunk_time = time.time()
+        
         return conn, res['count']
 
     def is_main_server(self) -> bool:
