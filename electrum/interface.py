@@ -381,9 +381,8 @@ class Interface(Logger):
         self.blockchain = None  # type: Optional[Blockchain]
         self._requested_chunks = set()  # type: Set[int]
         
-        # ADAPTIVE CHUNK SIZING: Reduce chunk size after timeouts
-        self._recent_timeout_count = 0  # Count timeouts in recent window
-        self._last_successful_chunk_time = time.time()  # Track when we last succeeded
+        # ADAPTIVE CHUNK SIZING: Remove local counters, use persistent network counters
+        # (Persistent counters now stored in network object, keyed by server+height)
         
         self.network = network
         self.session = None  # type: Optional[NotificationSession]
@@ -650,19 +649,23 @@ class Interface(Logger):
 
         self.logger.info(f"requesting chunk from height {height}")
         
-        # CRITICAL: ADAPTIVE chunk sizing based on recent timeout history
+        # CRITICAL: ADAPTIVE chunk sizing based on persistent timeout history
         # Some regions have high Scrypt density causing server LWMA timeout
-        # Strategy: Reduce chunk size progressively after timeouts
+        # Strategy: Reduce chunk size progressively after timeouts (persists across reconnects)
         if height > constants.net.max_checkpoint():
-            # Start with 128, reduce based on recent timeout count
-            if self._recent_timeout_count >= 3:
-                size = 32  # Very problematic region (multiple recent timeouts)
-            elif self._recent_timeout_count >= 1:
-                size = 64  # Problematic region (some recent timeouts)
-            else:
-                size = 128  # Optimistic (no recent timeouts)
+            # Get timeout count from persistent network storage
+            server_addr_str = str(self.server)
+            timeout_count = self.network.get_timeout_count(server_addr_str, height)
             
-            self.logger.info(f"Adaptive chunk size: {size} (recent timeouts: {self._recent_timeout_count})")
+            # Start with 128, reduce based on timeout count
+            if timeout_count >= 3:
+                size = 32  # Very problematic region (multiple timeouts recorded)
+            elif timeout_count >= 1:
+                size = 64  # Problematic region (some timeouts recorded)
+            else:
+                size = 128  # Optimistic (no timeouts recorded)
+            
+            self.logger.info(f"Adaptive chunk size: {size} (timeout count for {server_addr_str} height {height//1000}k: {timeout_count})")
         else:
             size = 2016  # Full chunks within checkpoint region
         
@@ -673,11 +676,12 @@ class Interface(Logger):
             self._requested_chunks.add((height, height + size))            
             res = await self.session.send_request('blockchain.block.headers', [height, size])
         except aiorpcx.jsonrpc.RPCError as e:
-            # CRITICAL: Track server timeouts to adaptively reduce chunk size
+            # CRITICAL: Track server timeouts to adaptively reduce chunk size (persistent)
             if e.code == JSONRPC.SERVER_BUSY and 'timed out' in str(e):
                 if height > constants.net.max_checkpoint():
-                    self._recent_timeout_count += 1
-                    self.logger.warning(f"Server timeout at height {height}, increasing timeout count to {self._recent_timeout_count}")
+                    server_addr_str = str(self.server)
+                    new_count = self.network.increment_timeout_count(server_addr_str, height)
+                    self.logger.warning(f"Server timeout at height {height}, timeout count now {new_count} for {server_addr_str} height {height//1000}k")
             raise  # Re-raise to trigger disconnection
         finally:
             self._requested_chunks.discard((height, height + size))        
@@ -710,12 +714,12 @@ class Interface(Logger):
         if not conn:
             return conn, 0
         
-        # SUCCESS: Reduce timeout counter (decay back to optimistic sizing)
+        # SUCCESS: Reduce timeout counter (decay back to optimistic sizing, persistent)
         if height > constants.net.max_checkpoint():
-            if self._recent_timeout_count > 0:
-                self._recent_timeout_count -= 1  # Decay timeout count on success
-                self.logger.info(f"Chunk success at {height}, timeout count reduced to {self._recent_timeout_count}")
-            self._last_successful_chunk_time = time.time()
+            server_addr_str = str(self.server)
+            new_count = self.network.decrement_timeout_count(server_addr_str, height)
+            if new_count >= 0:  # Only log if counter was > 0
+                self.logger.info(f"Chunk success at {height}, timeout count reduced to {new_count} for {server_addr_str} height {height//1000}k")
         
         return conn, res['count']
 
@@ -873,7 +877,14 @@ class Interface(Logger):
         iteration = 0
         while last is None or height <= next_height:
             iteration += 1
-            self.logger.info(f'sync_until: iteration {iteration}, height={height}, next_height={next_height}, last={last}')
+            # CRITICAL FIX: Chase moving server tip dynamically
+            # Don't use stale next_height from connection time, use current self.tip
+            current_tip = self.tip
+            if current_tip > next_height:
+                self.logger.info(f'sync_until: Server tip moved from {next_height} to {current_tip}, updating target')
+                next_height = current_tip
+            
+            self.logger.info(f'sync_until: iteration {iteration}, height={height}, next_height={next_height}, last={last}, server_tip={current_tip}')
             prev_last, prev_height = last, height
             if next_height > height + 10:
 
