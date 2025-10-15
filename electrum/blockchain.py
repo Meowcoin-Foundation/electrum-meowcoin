@@ -694,7 +694,17 @@ class Blockchain(Logger):
 
         chunk = convert_to_kawpow_len()
         self.write(chunk, delta_bytes, truncate)
-        assert self.read_header(start_height) == deserialize_header(chunk[:120], start_height)
+        
+        # Verify saved header can be read correctly
+        # Note: After conversion, chunk is always in 120-byte format (padded if needed)
+        try:
+            saved_header = self.read_header(start_height)
+            expected_header = deserialize_header(chunk[:HEADER_SIZE], start_height)
+            assert saved_header == expected_header, f"Header mismatch at {start_height}: saved != expected"
+        except Exception as e:
+            self.logger.error(f"save_chunk: Header verification failed at {start_height}: {e}")
+            raise
+        
         self.swap_with_parent()
 
     def swap_with_parent(self) -> None:
