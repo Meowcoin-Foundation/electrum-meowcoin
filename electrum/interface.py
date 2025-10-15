@@ -660,12 +660,15 @@ class Interface(Logger):
             # Start with 128, reduce based on timeout count
             if timeout_count >= 3:
                 size = 32  # Very problematic region (multiple timeouts recorded)
+                reason = "heavy Scrypt region detected"
             elif timeout_count >= 1:
                 size = 64  # Problematic region (some timeouts recorded)
+                reason = "previous timeout, reducing size"
             else:
                 size = 128  # Optimistic (no timeouts recorded)
+                reason = "optimal performance"
             
-            self.logger.info(f"Adaptive chunk size: {size} (timeout count for {server_addr_str} height {height//1000}k: {timeout_count})")
+            self.logger.info(f"Adaptive chunk: {size} blocks ({reason}, timeout_count={timeout_count} for height {height//1000}k)")
         else:
             size = 2016  # Full chunks within checkpoint region
         
@@ -676,13 +679,17 @@ class Interface(Logger):
             self._requested_chunks.add((height, height + size))            
             res = await self.session.send_request('blockchain.block.headers', [height, size])
         except aiorpcx.jsonrpc.RPCError as e:
-            # CRITICAL: Track server timeouts to adaptively reduce chunk size (persistent)
+            # CRITICAL: Handle server timeouts WITHOUT disconnecting entire interface
+            # This prevents unnecessary synchronizer/verifier restarts and wallet resubscriptions
             if e.code == JSONRPC.SERVER_BUSY and 'timed out' in str(e):
                 if height > constants.net.max_checkpoint():
                     server_addr_str = str(self.server)
                     new_count = self.network.increment_timeout_count(server_addr_str, height)
-                    self.logger.warning(f"Server timeout at height {height}, timeout count now {new_count} for {server_addr_str} height {height//1000}k")
-            raise  # Re-raise to trigger disconnection
+                    self.logger.warning(f"⏱️  Chunk timeout at {height} (requested {size} blocks). Adaptive counter: {new_count}. Will retry with smaller chunk. Session stays connected.")
+                # Return failure WITHOUT disconnecting - let sync_until retry with smaller chunk
+                return False, 0
+            # For other RPC errors (not timeouts), still disconnect
+            raise
         finally:
             self._requested_chunks.discard((height, height + size))        
         assert_dict_contains_field(res, field_name='count')
@@ -719,7 +726,7 @@ class Interface(Logger):
             server_addr_str = str(self.server)
             new_count = self.network.decrement_timeout_count(server_addr_str, height)
             if new_count >= 0:  # Only log if counter was > 0
-                self.logger.info(f"Chunk success at {height}, timeout count reduced to {new_count} for {server_addr_str} height {height//1000}k")
+                self.logger.info(f"✅ Chunk success ({res['count']} blocks from {height}). Adaptive counter: {new_count} → next chunk will be {'128' if new_count == 0 else '64' if new_count == 1 else '32'} blocks")
         
         return conn, res['count']
 
@@ -902,7 +909,10 @@ class Interface(Logger):
                 if not could_connect:
                     if height <= constants.net.max_checkpoint():
                         raise GracefulDisconnect('server chain conflicts with checkpoints or genesis')
-                    last, height = await self.step(height)
+                    # Timeout occurred - request_chunk already incremented adaptive counter
+                    # Simply continue loop to retry with smaller chunk size
+                    self.logger.info(f'sync_until: request_chunk failed (likely timeout), retrying with adapted chunk size...')
+                    await asyncio.sleep(0.5)  # Brief pause before retry
                     continue
 
                 util.trigger_callback('network_updated')
