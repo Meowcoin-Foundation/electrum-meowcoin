@@ -700,9 +700,24 @@ class Blockchain(Logger):
         try:
             saved_header = self.read_header(start_height)
             expected_header = deserialize_header(chunk[:HEADER_SIZE], start_height)
-            assert saved_header == expected_header, f"Header mismatch at {start_height}: saved != expected"
+            
+            if saved_header != expected_header:
+                self.logger.error(f"save_chunk: Header mismatch at {start_height}")
+                self.logger.error(f"  Chunk first 120 bytes (hex): {chunk[:HEADER_SIZE].hex()}")
+                
+                # Compare each field
+                for key in set(list(saved_header.keys()) + list(expected_header.keys())):
+                    saved_val = saved_header.get(key)
+                    expected_val = expected_header.get(key)
+                    if saved_val != expected_val:
+                        self.logger.error(f"  Field '{key}' differs:")
+                        self.logger.error(f"    Saved:    {saved_val}")
+                        self.logger.error(f"    Expected: {expected_val}")
+                
+                raise AssertionError(f"Header mismatch at {start_height}: saved != expected")
         except Exception as e:
-            self.logger.error(f"save_chunk: Header verification failed at {start_height}: {e}")
+            if "Header mismatch" not in str(e):
+                self.logger.error(f"save_chunk: Header verification exception at {start_height}: {e}")
             raise
         
         self.swap_with_parent()
