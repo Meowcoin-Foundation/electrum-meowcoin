@@ -858,7 +858,18 @@ class Interface(Logger):
             blockchain_height = self.blockchain.height()
             if height > blockchain_height + 1:
                 # Large gap: start syncing from blockchain height + 1
-                self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
+                # CRITICAL: Query actual server height before starting sync (tip may be stale)
+                try:
+                    actual_server_height = await self.get_current_server_height()
+                    if actual_server_height > height:
+                        self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, initial tip {height} → actual server {actual_server_height}")
+                        self.tip = actual_server_height
+                    else:
+                        self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
+                except Exception as e:
+                    self.logger.warning(f"Failed to query actual server height: {e}")
+                    self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
+                
                 self.logger.info(f"Starting sequential sync from {blockchain_height + 1}")
                 await self.sync_until(blockchain_height + 1)
                 
@@ -900,9 +911,9 @@ class Interface(Logger):
         iteration = 0
         while last is None or height <= next_height:
             iteration += 1
-            # CRITICAL FIX: Query current server height actively (every 5 iterations)
+            # CRITICAL FIX: Query current server height actively (every 3 iterations)
             # Don't rely on passive notifications that may be delayed/missing
-            if iteration % 5 == 1:  # Query on first iteration and every 5th 
+            if iteration % 3 == 1:  # Query on iterations 1, 4, 7, 10, ... 
                 try:
                     current_server_height = await self.get_current_server_height()
                     if current_server_height > self.tip:
