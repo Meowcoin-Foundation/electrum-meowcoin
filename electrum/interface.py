@@ -644,15 +644,16 @@ class Interface(Logger):
 
         self.logger.info(f"requesting chunk from height {height}")
         
-        # CRITICAL: After checkpoints, use ULTRA small chunks to avoid server timeout
-        # Post-checkpoint blocks require full LWMA validation on server (expensive!)
+        # CRITICAL: After checkpoints, use smaller chunks to balance speed vs timeout risk
+        # Client now optimized (skips 90% of hashing), but server may still be slow
         # Testing results:
-        #   2016 blocks: >60sec timeout
+        #   2016 blocks: >60sec timeout (server LWMA validation heavy)
         #   256 blocks:  >60sec timeout  
-        #   64 blocks:   >60sec timeout at height 1623008+ (heavy LWMA region)
-        # Solution: 32 blocks to stay under 60sec limit
+        #   64 blocks:   >60sec timeout at some heights
+        #   32 blocks:   Works but slow (~30-40 min total sync)
+        # With client optimization: try 128 blocks (10x less hashing than before)
         if height > constants.net.max_checkpoint():
-            size = 32  # Ultra-small chunks post-checkpoint (even 64 times out!)
+            size = 128  # Optimized chunks (client now 10x faster, server may vary)
         else:
             size = 2016  # Full chunks within checkpoint region
         
