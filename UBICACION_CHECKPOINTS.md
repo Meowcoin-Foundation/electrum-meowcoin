@@ -72,3 +72,4 @@ electrum/checkpoints_dgw.json
 cp tu-archivo-generado.json electrum/checkpoints_dgw.json
 ```
 
+

@@ -256,3 +256,4 @@ wc -l checkpoints_dgw.json
 
 **IMPORTANTE**: El script tarda tiempo pero es normal. Cada checkpoint requiere consultar 2 bloques al daemon, así que para 805 checkpoints hace ~1610 consultas RPC.
 
+

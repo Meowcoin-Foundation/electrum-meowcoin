@@ -166,3 +166,4 @@ Con la solución implementada, estos errores están resueltos:
 **Próximo paso**: Esperar reindex del servidor
 
 
+

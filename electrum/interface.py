@@ -434,16 +434,6 @@ class Interface(Logger):
     def __str__(self):
         return f"<Interface {self.diagnostic_name()}>"
 
-    async def get_current_server_height(self) -> int:
-        """Query current server height directly (not via notifications)"""
-        try:
-            res = await self.session.send_request('blockchain.headers.subscribe', [])
-            if res and isinstance(res, dict) and 'height' in res:
-                return res['height']
-        except Exception as e:
-            self.logger.warning(f"Failed to get current server height: {e}")
-        return self.tip  # Fallback to last known tip
-
     async def is_server_ca_signed(self, ca_ssl_context):
         """Given a CA enforcing SSL context, returns True if the connection
         can be established. Returns False if the server has a self-signed
@@ -830,6 +820,7 @@ class Interface(Logger):
             header = blockchain.deserialize_header(bfh(raw_header['hex']), height)
             self.tip_header = header
             self.tip = height
+            self.logger.info(f"run_fetch_blocks: Received server notification - new tip: {height}")
             if self.tip < constants.net.max_checkpoint():
                 raise GracefulDisconnect('server tip below max checkpoint')
             self._mark_ready()
@@ -840,6 +831,11 @@ class Interface(Logger):
             util.trigger_callback('network_updated')
             await self.network.switch_unwanted_fork_interface()
             await self.network.switch_lagging_interface()
+            
+            # CRITICAL: After processing, check if we're fully synced
+            # If not, loop will wait for next server notification
+            if self.blockchain.height() >= self.tip:
+                self.logger.info(f"run_fetch_blocks: Synced to tip (blockchain: {self.blockchain.height()}, server: {self.tip}), waiting for next block...")
 
     async def _process_header_at_tip(self) -> bool:
         """Returns:
@@ -858,45 +854,21 @@ class Interface(Logger):
             blockchain_height = self.blockchain.height()
             if height > blockchain_height + 1:
                 # Large gap: start syncing from blockchain height + 1
-                # CRITICAL: Query actual server height before starting sync (tip may be stale)
-                self.logger.info(f"[DEBUG] Before sync: Querying actual server height (current tip: {height}, self.tip: {self.tip})")
-                try:
-                    actual_server_height = await self.get_current_server_height()
-                    self.logger.info(f"[DEBUG] Query returned actual_server_height: {actual_server_height}")
-                    if actual_server_height > height:
-                        self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, initial tip {height} → actual server {actual_server_height}")
-                        self.tip = actual_server_height
-                    else:
-                        self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height} (query confirmed)")
-                except Exception as e:
-                    self.logger.warning(f"Failed to query actual server height: {e}")
-                    import traceback
-                    self.logger.warning(f"Traceback: {traceback.format_exc()}")
-                    self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
-                
+                self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
                 self.logger.info(f"Starting sequential sync from {blockchain_height + 1}")
                 await self.sync_until(blockchain_height + 1)
                 
-                # CRITICAL FIX: After sync_until completes, check current server height
-                # Server may have advanced significantly during sync
-                try:
-                    current_server_height = await self.get_current_server_height()
-                    final_blockchain_height = self.blockchain.height()
-                    if current_server_height > self.tip:
-                        self.logger.info(f"Post-sync server height query: {current_server_height} > {self.tip}, updating self.tip")
-                        self.tip = current_server_height
-                    
-                    if final_blockchain_height < current_server_height:
-                        self.logger.info(f"Continuing sync: blockchain at {final_blockchain_height}, actual server at {current_server_height}")
-                        await self.sync_until(final_blockchain_height + 1)
-                except Exception as e:
-                    self.logger.warning(f"Failed to query server height after sync: {e}")
-                    # Fallback to old behavior
-                    final_blockchain_height = self.blockchain.height()
-                    if final_blockchain_height < self.tip:
-                        self.logger.info(f"Continuing sync: blockchain at {final_blockchain_height}, server at {self.tip}")
-                        await self.sync_until(final_blockchain_height + 1)
+                # CRITICAL: After sync, check if we caught up to current tip
+                # If yes, return True (will wait for next server notification in run_fetch_blocks)
+                # If no (server advanced during sync), continue syncing
+                final_blockchain_height = self.blockchain.height()
+                if final_blockchain_height < self.tip:
+                    self.logger.info(f"Server advanced during sync: blockchain at {final_blockchain_height}, server now at {self.tip}")
+                    self.logger.info(f"Continuing sync to catch up...")
+                    await self.sync_until(final_blockchain_height + 1)
                 
+                # Done syncing to current tip - will wait for next server notification
+                self.logger.info(f"Sync complete to current tip: blockchain at {self.blockchain.height()}, server at {self.tip}")
                 return True
             else:
                 # Small gap: can process tip header directly
@@ -915,28 +887,7 @@ class Interface(Logger):
         iteration = 0
         while last is None or height <= next_height:
             iteration += 1
-            # CRITICAL FIX: Query current server height actively (every 3 iterations)
-            # Don't rely on passive notifications that may be delayed/missing
-            if iteration % 3 == 1:  # Query on iterations 1, 4, 7, 10, ... 
-                self.logger.info(f'sync_until: [DEBUG] Querying server height at iteration {iteration}')
-                try:
-                    current_server_height = await self.get_current_server_height()
-                    self.logger.info(f'sync_until: [DEBUG] Query returned: {current_server_height}, current self.tip: {self.tip}')
-                    if current_server_height > self.tip:
-                        self.logger.info(f'sync_until: Server height query: {current_server_height} > {self.tip}, updating self.tip')
-                        self.tip = current_server_height
-                        if current_server_height > next_height:
-                            next_height = current_server_height
-                            self.logger.info(f'sync_until: Updated target to {next_height}')
-                    else:
-                        self.logger.info(f'sync_until: [DEBUG] Server height unchanged: {current_server_height} <= {self.tip}')
-                except Exception as e:
-                    self.logger.warning(f'sync_until: Failed to query server height: {e}')
-                    import traceback
-                    self.logger.warning(f'sync_until: Traceback: {traceback.format_exc()}')
-            
-            current_tip = self.tip
-            self.logger.info(f'sync_until: iteration {iteration}, height={height}, next_height={next_height}, last={last}, server_tip={current_tip}')
+            self.logger.info(f'sync_until: iteration {iteration}, height={height}, next_height={next_height}, last={last}, server_tip={self.tip}')
             prev_last, prev_height = last, height
             if next_height > height + 10:
 
