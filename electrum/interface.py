@@ -647,8 +647,6 @@ class Interface(Logger):
         if can_return_early and ret:
             return
 
-        self.logger.info(f"requesting chunk from height {height}")
-        
         # CRITICAL: ADAPTIVE chunk sizing based on persistent timeout history
         # Some regions have high Scrypt density causing server LWMA timeout
         # Strategy: Reduce chunk size progressively after timeouts (persists across reconnects)
@@ -660,15 +658,10 @@ class Interface(Logger):
             # Start with 128, reduce based on timeout count
             if timeout_count >= 3:
                 size = 32  # Very problematic region (multiple timeouts recorded)
-                reason = "heavy Scrypt region detected"
             elif timeout_count >= 1:
                 size = 64  # Problematic region (some timeouts recorded)
-                reason = "previous timeout, reducing size"
             else:
                 size = 128  # Optimistic (no timeouts recorded)
-                reason = "optimal performance"
-            
-            self.logger.info(f"Adaptive chunk: {size} blocks ({reason}, timeout_count={timeout_count} for height {height//1000}k)")
         else:
             size = 2016  # Full chunks within checkpoint region
         
@@ -724,9 +717,7 @@ class Interface(Logger):
         # SUCCESS: Reduce timeout counter (decay back to optimistic sizing, persistent)
         if height > constants.net.max_checkpoint():
             server_addr_str = str(self.server)
-            new_count = self.network.decrement_timeout_count(server_addr_str, height)
-            if new_count >= 0:  # Only log if counter was > 0
-                self.logger.info(f"✅ Chunk success ({res['count']} blocks from {height}). Adaptive counter: {new_count} → next chunk will be {'128' if new_count == 0 else '64' if new_count == 1 else '32'} blocks")
+            self.network.decrement_timeout_count(server_addr_str, height)
         
         return conn, res['count']
 
@@ -827,7 +818,6 @@ class Interface(Logger):
             header = blockchain.deserialize_header(bfh(raw_header['hex']), height)
             self.tip_header = header
             self.tip = height
-            self.logger.info(f"run_fetch_blocks: Received server notification - new tip: {height}")
             if self.tip < constants.net.max_checkpoint():
                 raise GracefulDisconnect('server tip below max checkpoint')
             self._mark_ready()
@@ -838,11 +828,6 @@ class Interface(Logger):
             util.trigger_callback('network_updated')
             await self.network.switch_unwanted_fork_interface()
             await self.network.switch_lagging_interface()
-            
-            # CRITICAL: After processing, check if we're fully synced
-            # If not, loop will wait for next server notification
-            if self.blockchain.height() >= self.tip:
-                self.logger.info(f"run_fetch_blocks: Synced to tip (blockchain: {self.blockchain.height()}, server: {self.tip}), waiting for next block...")
 
     async def _process_header_at_tip(self) -> bool:
         """Returns:
@@ -861,8 +846,7 @@ class Interface(Logger):
             blockchain_height = self.blockchain.height()
             if height > blockchain_height + 1:
                 # Large gap: start syncing from blockchain height + 1
-                self.logger.info(f"Large sync gap detected: blockchain at {blockchain_height}, server at {height}")
-                self.logger.info(f"Starting sequential sync from {blockchain_height + 1}")
+                self.logger.info(f"Syncing from {blockchain_height} to {height}")
                 await self.sync_until(blockchain_height + 1)
                 
                 # CRITICAL: After sync, check if we caught up to current tip
@@ -870,12 +854,8 @@ class Interface(Logger):
                 # If no (server advanced during sync), continue syncing
                 final_blockchain_height = self.blockchain.height()
                 if final_blockchain_height < self.tip:
-                    self.logger.info(f"Server advanced during sync: blockchain at {final_blockchain_height}, server now at {self.tip}")
-                    self.logger.info(f"Continuing sync to catch up...")
                     await self.sync_until(final_blockchain_height + 1)
                 
-                # Done syncing to current tip - will wait for next server notification
-                self.logger.info(f"Sync complete to current tip: blockchain at {self.blockchain.height()}, server at {self.tip}")
                 return True
             else:
                 # Small gap: can process tip header directly
@@ -888,13 +868,10 @@ class Interface(Logger):
     async def sync_until(self, height, next_height=None):
         if next_height is None:
             next_height = self.tip
-        self.logger.info(f'sync_until: starting from height {height}, target {next_height} (server tip: {self.tip})')
+        self.logger.info(f'Syncing headers from {height} to {next_height}')
         last = None
         got_less_than_spacing = False
-        iteration = 0
         while last is None or height <= next_height:
-            iteration += 1
-            self.logger.info(f'sync_until: iteration {iteration}, height={height}, next_height={next_height}, last={last}, server_tip={self.tip}')
             prev_last, prev_height = last, height
             if next_height > height + 10:
 
@@ -904,30 +881,25 @@ class Interface(Logger):
                     height = (height // constants.net.DGW_CHECKPOINTS_SPACING) * constants.net.DGW_CHECKPOINTS_SPACING
 
                 could_connect, num_headers = await self.request_chunk(height, next_height)
-                self.logger.info(f'sync_until: request_chunk({height}) returned: could_connect={could_connect}, num_headers={num_headers}')
 
                 if not could_connect:
                     if height <= constants.net.max_checkpoint():
                         raise GracefulDisconnect('server chain conflicts with checkpoints or genesis')
                     # Timeout occurred - request_chunk already incremented adaptive counter
                     # Simply continue loop to retry with smaller chunk size
-                    self.logger.info(f'sync_until: request_chunk failed (likely timeout), retrying with adapted chunk size...')
                     await asyncio.sleep(0.5)  # Brief pause before retry
                     continue
 
                 util.trigger_callback('network_updated')
                 got_less_than_spacing = num_headers < constants.net.DGW_CHECKPOINTS_SPACING
-                old_height = height
                 height = height + num_headers
-                self.logger.info(f'sync_until: processed {num_headers} headers: {old_height} -> {height} (target: {next_height})')
                 assert height <= next_height+1, (height, self.tip)
                 last = 'catchup'
             else:
                 last, height = await self.step(height)
             assert (prev_last, prev_height) != (last, height), 'had to prevent infinite loop in interface.sync_until'
 
-        self.logger.info(f'sync_until: FINISHED - final height={height}, target was {next_height}, last={last}')
-        self.logger.info(f'sync_until: Loop exit reason - last is None: {last is None}, height <= next_height: {height <= next_height}')
+        self.logger.info(f'Sync complete: reached height {height}')
         return last, height
     
 
