@@ -571,9 +571,18 @@ class Abstract_Wallet(ABC, Logger, EventListener):
         
         This ensures the GUI updates from 'Synchronizing...' to 'Synchronized' 
         after blockchain headers finish syncing following a server reconnection.
+        
+        Only triggers re-check when blockchain is fully synced to avoid
+        calling adb.up_to_date_changed() hundreds of times during header sync.
         """
-        if self.adb:
-            self.adb.up_to_date_changed()
+        if self.adb and self.network:
+            # Only trigger re-check if blockchain is actually synced
+            local_height = self.network.get_local_height()
+            server_height = self.network.get_server_height()
+            blockchain_synced = abs(local_height - server_height) <= 1
+            
+            if blockchain_synced:
+                self.adb.up_to_date_changed()
 
     @event_listener
     def on_event_adb_added_tx(self, adb, tx_hash: str, tx: Transaction):
