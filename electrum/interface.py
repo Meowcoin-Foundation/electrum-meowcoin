@@ -782,7 +782,7 @@ class Interface(Logger):
 
     async def ping(self):
         while True:
-            await asyncio.sleep(300)
+            await asyncio.sleep(60)
             await self.session.send_request('server.ping')
 
     async def request_fee_estimates(self):
