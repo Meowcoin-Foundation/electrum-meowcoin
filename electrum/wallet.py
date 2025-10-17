@@ -566,6 +566,16 @@ class Abstract_Wallet(ABC, Logger, EventListener):
             self.logger.info(f'set_up_to_date: {up_to_date} (blockchain_synced={blockchain_synced}, local={local_height if self.network else None}, server={server_height if self.network else None})')
 
     @event_listener
+    def on_event_blockchain_updated(self, *args):
+        """Re-check wallet up_to_date status when blockchain syncs.
+        
+        This ensures the GUI updates from 'Synchronizing...' to 'Synchronized' 
+        after blockchain headers finish syncing following a server reconnection.
+        """
+        if self.adb:
+            self.adb.up_to_date_changed()
+
+    @event_listener
     def on_event_adb_added_tx(self, adb, tx_hash: str, tx: Transaction):
         if self.adb != adb:
             return
