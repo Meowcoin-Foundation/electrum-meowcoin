@@ -10,6 +10,12 @@
     "s": "50002",
     "t": "50001",
     "version": "1.11"
+  },
+  "electrum.mewccrypto.com": {
+    "pruning": "-",
+    "s": "50002",
+    "t": "50001",
+    "version": "1.11"
   }
 }
   
