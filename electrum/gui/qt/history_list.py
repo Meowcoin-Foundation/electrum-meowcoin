@@ -28,7 +28,7 @@ import sys
 import time
 import datetime
 from datetime import date
-from typing import TYPE_CHECKING, Tuple, Dict, Any
+from typing import TYPE_CHECKING, Tuple, Dict, Any, Optional
 import threading
 import enum
 from decimal import Decimal
@@ -54,7 +54,7 @@ from electrum.simple_config import SimpleConfig
 from .custom_model import CustomNode, CustomModel
 from .util import (read_QIcon, MONOSPACE_FONT, Buttons, CancelButton, OkButton,
                    filename_field, AcceptFileDragDrop, WindowModalDialog,
-                   CloseButton, webopen, WWLabel, ColorScheme)
+                   CloseButton, webopen, WWLabel, ColorScheme, TaskThread)
 from .my_treeview import MyTreeView
 
 if TYPE_CHECKING:
@@ -262,6 +262,7 @@ class HistoryModel(CustomModel, Logger):
         self.view = None  # type: HistoryList
         self.transactions = OrderedDictWithIndex()
         self.tx_status_cache = {}  # type: Dict[str, Tuple[int, str]]
+        self._refresh_thread = None  # type: TaskThread
 
     def set_view(self, history_list: 'HistoryList'):
         # FIXME HistoryModel and HistoryList mutually depend on each other.
@@ -295,6 +296,33 @@ class HistoryModel(CustomModel, Logger):
     def should_show_capital_gains(self):
         return self.should_show_fiat() and self.window.config.FX_HISTORY_RATES_CAPITAL_GAINS
 
+    def _refresh_in_background(self, wallet, fx, domain, include_lightning, include_fiat):
+        """Heavy computation in background thread - returns processed data"""
+        # Get full history (expensive)
+        transactions = wallet.get_full_history(
+            fx,
+            onchain_domain=domain,
+            include_lightning=include_lightning,
+            include_fiat=include_fiat,
+        )
+        
+        # Pre-compute balance and status cache (expensive)
+        balance_data = {}
+        status_cache = {}
+        running_balance = defaultdict(int)
+        
+        for (txid, asset), tx_item in transactions.items():
+            asset_key = tx_item.get('asset', None)
+            sats = tx_item['value']
+            running_balance[asset_key] += sats.value
+            balance_data[(txid, asset)] = Satoshis(running_balance[asset_key])
+            
+            if not tx_item.get('lightning', False):
+                tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
+                status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
+        
+        return transactions, balance_data, status_cache
+
     @profiler
     def refresh(self, reason: str):
         self.logger.info(f"refreshing... reason: {reason}")
@@ -302,80 +330,94 @@ class HistoryModel(CustomModel, Logger):
         assert self.view, 'view not set'
         if self.view.maybe_defer_update():
             return
+        
+        # Store selection before refresh
         selected = self.view.selectionModel().currentIndex()
-        selected_row = None
-        if selected:
-            selected_row = selected.row()
+        selected_row = selected.row() if selected else None
+        
         fx = self.window.fx
         if fx: fx.history_used_spot = False
         wallet = self.window.wallet
-        self.set_visibility_of_columns()
-        transactions = wallet.get_full_history(
-            self.window.fx,
-            onchain_domain=self.get_domain(),
-            include_lightning=self.should_include_lightning_payments(),
-            include_fiat=self.should_show_fiat(),
-        )
         
-        if transactions == self.transactions:
-            return
-
-        #for transaction in transactions.values():
-        #    print(transaction['txid'])
-        #    print(transaction['asset'])
-        #    print(transaction['bc_value'])
-        #    print('==========')
+        # Define background task
+        def background_task():
+            return self._refresh_in_background(
+                wallet, fx,
+                self.get_domain(),
+                self.should_include_lightning_payments(),
+                self.should_show_fiat()
+            )
         
-        old_length = self._root.childCount()
-        if old_length != 0:
-            self.beginRemoveRows(QModelIndex(), 0, old_length)
-            self.transactions.clear()
-            self._root = HistoryNode(self, None)
-            self.endRemoveRows()
-        parents = {}
-        for tx_item in transactions.values():
-            node = HistoryNode(self, tx_item)
-            self._root.addChild(node)
-            for child_item in tx_item.get('children', []):
-                child_node = HistoryNode(self, child_item)
-                # add child to parent
-                node.addChild(child_node)
-
-        # compute balance once all children have beed added
-        balance = defaultdict(int)
-        for node in self._root._children:
-            asset = node._data.get('asset', None)
-            sats = node._data['value']
-            balance[asset] += sats.value
-            node._data['balance'] = Satoshis(balance[asset])
-
-        new_length = self._root.childCount()
-        self.beginInsertRows(QModelIndex(), 0, new_length-1)
-        self.transactions = transactions
-        self.endInsertRows()
-
-        if selected_row:
-            self.view.selectionModel().select(self.createIndex(selected_row, 0), QItemSelectionModel.Rows | QItemSelectionModel.SelectCurrent)
-        self.view.filter()
-        # update time filter
-        if not self.view.years and self.transactions:
-            start_date = date.today()
-            end_date = date.today()
-            if len(self.transactions) > 0:
-                start_date = self.transactions.value_from_pos(0).get('date') or start_date
-                end_date = self.transactions.value_from_pos(len(self.transactions) - 1).get('date') or end_date
-            self.view.years = [str(i) for i in range(start_date.year, end_date.year + 1)]
-            self.view.period_combo.insertItems(1, self.view.years)
-        # update tx_status_cache
-        self.tx_status_cache.clear()
-        for (txid, asset), tx_item in self.transactions.items():
-            if not tx_item.get('lightning', False):
-                tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
-                self.tx_status_cache[(txid, asset)] = self.window.wallet.get_tx_status(txid, tx_mined_info)
-        # update counter
-        num_tx = len(set(v['txid'] for v in self.transactions.values()))
-        if self.view:
-            self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
+        # Define success callback (runs in GUI thread)
+        def on_success(result):
+            transactions, balance_data, status_cache = result
+            
+            # Quick check if data changed
+            if transactions == self.transactions:
+                return
+            
+            # GUI updates (fast - just tree manipulation)
+            self.set_visibility_of_columns()
+            
+            old_length = self._root.childCount()
+            if old_length != 0:
+                self.beginRemoveRows(QModelIndex(), 0, old_length)
+                self.transactions.clear()
+                self._root = HistoryNode(self, None)
+                self.endRemoveRows()
+            
+            # Build tree nodes
+            for tx_item in transactions.values():
+                node = HistoryNode(self, tx_item)
+                self._root.addChild(node)
+                for child_item in tx_item.get('children', []):
+                    child_node = HistoryNode(self, child_item)
+                    node.addChild(child_node)
+            
+            # Apply pre-computed balances
+            for node in self._root._children:
+                txid = node._data['txid']
+                asset = node._data.get('asset', None)
+                node._data['balance'] = balance_data.get((txid, asset), Satoshis(0))
+            
+            new_length = self._root.childCount()
+            self.beginInsertRows(QModelIndex(), 0, new_length-1)
+            self.transactions = transactions
+            self.endInsertRows()
+            
+            # Restore selection
+            if selected_row:
+                self.view.selectionModel().select(
+                    self.createIndex(selected_row, 0),
+                    QItemSelectionModel.Rows | QItemSelectionModel.SelectCurrent
+                )
+            
+            self.view.filter()
+            
+            # Update time filter
+            if not self.view.years and self.transactions:
+                start_date = date.today()
+                end_date = date.today()
+                if len(self.transactions) > 0:
+                    start_date = self.transactions.value_from_pos(0).get('date') or start_date
+                    end_date = self.transactions.value_from_pos(len(self.transactions) - 1).get('date') or end_date
+                self.view.years = [str(i) for i in range(start_date.year, end_date.year + 1)]
+                self.view.period_combo.insertItems(1, self.view.years)
+            
+            # Apply status cache
+            self.tx_status_cache.clear()
+            self.tx_status_cache.update(status_cache)
+            
+            # Update counter
+            num_tx = len(set(v['txid'] for v in self.transactions.values()))
+            if self.view:
+                self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
+        
+        # Run in background thread
+        # Note: No WaitingDialog needed - just run silently and update when done
+        if not hasattr(self, '_refresh_thread') or not self._refresh_thread.isRunning():
+            self._refresh_thread = TaskThread(self.window)
+            self._refresh_thread.add(background_task, on_success=on_success, on_error=lambda e: self.logger.error(f"History refresh failed: {e}"))
 
     def set_visibility_of_columns(self):
         def set_visible(col: int, b: bool):
