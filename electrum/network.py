@@ -318,12 +318,6 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         self.bhi_lock = asyncio.Lock()
         self.recent_servers_lock = threading.RLock()       # <- re-entrant
         self.interfaces_lock = threading.Lock()            # for mutating/iterating self.interfaces
-        
-        # ADAPTIVE CHUNK SIZING: Persistent timeout counters across interface reconnects
-        # Key: (server_addr_str, height_bucket)  Value: timeout_count
-        # Height bucket = height // 1000 to group nearby heights together
-        self._timeout_counters = {}  # type: Dict[Tuple[str, int], int]
-        self._timeout_counters_lock = threading.Lock()
 
         self.server_peers = {}  # returned by interface (servers that the main interface knows about)
         self._recent_servers = self._read_recent_servers()  # note: needs self.recent_servers_lock
@@ -1531,34 +1525,3 @@ class Network(Logger, NetworkRetryManager[ServerAddr]):
         servers_dict = {k: v for k, v in hostmap.items()
                         if k in servers_replied}
         return servers_dict
-    
-    # ADAPTIVE CHUNK SIZING: Persistent timeout counter methods
-    def get_timeout_count(self, server_addr_str: str, height: int) -> int:
-        """Get timeout count for server+height bucket, persists across reconnects"""
-        height_bucket = height // 1000  # Group nearby heights (e.g. 1623xxx -> 1623)
-        key = (server_addr_str, height_bucket)
-        with self._timeout_counters_lock:
-            return self._timeout_counters.get(key, 0)
-    
-    def increment_timeout_count(self, server_addr_str: str, height: int) -> int:
-        """Increment timeout count for server+height bucket, return new count"""
-        height_bucket = height // 1000
-        key = (server_addr_str, height_bucket)
-        with self._timeout_counters_lock:
-            current = self._timeout_counters.get(key, 0)
-            new_count = current + 1
-            self._timeout_counters[key] = new_count
-            return new_count
-    
-    def decrement_timeout_count(self, server_addr_str: str, height: int) -> int:
-        """Decrement timeout count on success, return new count (min 0)"""
-        height_bucket = height // 1000
-        key = (server_addr_str, height_bucket)
-        with self._timeout_counters_lock:
-            current = self._timeout_counters.get(key, 0)
-            new_count = max(0, current - 1)
-            if new_count == 0:
-                self._timeout_counters.pop(key, None)  # Clean up zero entries
-            else:
-                self._timeout_counters[key] = new_count
-            return new_count

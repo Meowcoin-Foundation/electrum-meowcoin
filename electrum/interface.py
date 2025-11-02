@@ -381,9 +381,6 @@ class Interface(Logger):
         self.blockchain = None  # type: Optional[Blockchain]
         self._requested_chunks = set()  # type: Set[int]
         
-        # ADAPTIVE CHUNK SIZING: Remove local counters, use persistent network counters
-        # (Persistent counters now stored in network object, keyed by server+height)
-        
         self.network = network
         self.session = None  # type: Optional[NotificationSession]
         self._ipaddr_bucket = None
@@ -647,42 +644,14 @@ class Interface(Logger):
         if can_return_early and ret:
             return
 
-        # CRITICAL: ADAPTIVE chunk sizing based on persistent timeout history
-        # Some regions have high Scrypt density causing server LWMA timeout
-        # Strategy: Reduce chunk size progressively after timeouts (persists across reconnects)
-        if height > constants.net.max_checkpoint():
-            # Get timeout count from persistent network storage
-            server_addr_str = str(self.server)
-            timeout_count = self.network.get_timeout_count(server_addr_str, height)
-            
-            # Start with 128, reduce based on timeout count
-            if timeout_count >= 3:
-                size = 32  # Very problematic region (multiple timeouts recorded)
-            elif timeout_count >= 1:
-                size = 64  # Problematic region (some timeouts recorded)
-            else:
-                size = 128  # Optimistic (no timeouts recorded)
-        else:
-            size = 2016  # Full chunks within checkpoint region
-        
+        self.logger.info(f"requesting chunk from height {height}")
+        size = 2016
         if tip is not None:
             size = min(size, tip - height + 1)
             size = max(size, 0)
         try:
             self._requested_chunks.add((height, height + size))            
             res = await self.session.send_request('blockchain.block.headers', [height, size])
-        except aiorpcx.jsonrpc.RPCError as e:
-            # CRITICAL: Handle server timeouts WITHOUT disconnecting entire interface
-            # This prevents unnecessary synchronizer/verifier restarts and wallet resubscriptions
-            if e.code == JSONRPC.SERVER_BUSY and 'timed out' in str(e):
-                if height > constants.net.max_checkpoint():
-                    server_addr_str = str(self.server)
-                    new_count = self.network.increment_timeout_count(server_addr_str, height)
-                    self.logger.warning(f"⏱️  Chunk timeout at {height} (requested {size} blocks). Adaptive counter: {new_count}. Will retry with smaller chunk. Session stays connected.")
-                # Return failure WITHOUT disconnecting - let sync_until retry with smaller chunk
-                return False, 0
-            # For other RPC errors (not timeouts), still disconnect
-            raise
         finally:
             self._requested_chunks.discard((height, height + size))        
         assert_dict_contains_field(res, field_name='count')
@@ -713,11 +682,6 @@ class Interface(Logger):
 
         if not conn:
             return conn, 0
-        
-        # SUCCESS: Reduce timeout counter (decay back to optimistic sizing, persistent)
-        if height > constants.net.max_checkpoint():
-            server_addr_str = str(self.server)
-            self.network.decrement_timeout_count(server_addr_str, height)
         
         return conn, res['count']
 
@@ -885,9 +849,7 @@ class Interface(Logger):
                 if not could_connect:
                     if height <= constants.net.max_checkpoint():
                         raise GracefulDisconnect('server chain conflicts with checkpoints or genesis')
-                    # Timeout occurred - request_chunk already incremented adaptive counter
-                    # Simply continue loop to retry with smaller chunk size
-                    await asyncio.sleep(0.5)  # Brief pause before retry
+                    last, height = await self.step(height)
                     continue
 
                 util.trigger_callback('network_updated')
