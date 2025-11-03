@@ -262,6 +262,10 @@ class HistoryModel(CustomModel, Logger):
         self.view = None  # type: HistoryList
         self.transactions = OrderedDictWithIndex()
         self.tx_status_cache = {}  # type: Dict[str, Tuple[int, str]]
+        # Pagination support for large wallets
+        self._full_transactions = OrderedDictWithIndex()
+        self._displayed_count = 500  # Show 500 most recent transactions initially
+        self._page_size = 500  # Load 500 more each time
 
     def set_view(self, history_list: 'HistoryList'):
         # FIXME HistoryModel and HistoryList mutually depend on each other.
@@ -295,6 +299,12 @@ class HistoryModel(CustomModel, Logger):
     def should_show_capital_gains(self):
         return self.should_show_fiat() and self.window.config.FX_HISTORY_RATES_CAPITAL_GAINS
 
+    def load_more(self):
+        """Load more transactions (pagination)"""
+        self._displayed_count += self._page_size
+        self.logger.info(f"Loading more transactions, new limit: {self._displayed_count}")
+        self.refresh('load_more')
+
     @profiler
     def refresh(self, reason: str):
         self.logger.info(f"refreshing... reason: {reason}")
@@ -310,12 +320,27 @@ class HistoryModel(CustomModel, Logger):
         if fx: fx.history_used_spot = False
         wallet = self.window.wallet
         self.set_visibility_of_columns()
-        transactions = wallet.get_full_history(
+        
+        # Get ALL transactions but only display a subset (pagination)
+        all_transactions = wallet.get_full_history(
             self.window.fx,
             onchain_domain=self.get_domain(),
             include_lightning=self.should_include_lightning_payments(),
             include_fiat=self.should_show_fiat(),
         )
+        
+        # Store full list for pagination
+        self._full_transactions = all_transactions
+        total_count = len(all_transactions)
+        
+        # Only show the most recent _displayed_count transactions
+        transactions = OrderedDictWithIndex()
+        for idx, (key, tx_item) in enumerate(all_transactions.items()):
+            if idx >= self._displayed_count:
+                break
+            transactions[key] = tx_item
+        
+        self.logger.info(f"Displaying {len(transactions)} of {total_count} total transactions")
         
         if transactions == self.transactions:
             return
@@ -372,10 +397,17 @@ class HistoryModel(CustomModel, Logger):
             if not tx_item.get('lightning', False):
                 tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
                 self.tx_status_cache[(txid, asset)] = self.window.wallet.get_tx_status(txid, tx_mined_info)
-        # update counter
+        # update counter with pagination info
         num_tx = len(set(v['txid'] for v in self.transactions.values()))
+        total_tx = len(set(v['txid'] for v in self._full_transactions.values()))
         if self.view:
-            self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
+            if num_tx < total_tx:
+                self.view.num_tx_label.setText(_("Showing {} of {} transactions").format(num_tx, total_tx))
+                self.view.load_more_button.setVisible(True)
+                self.view.load_more_button.setEnabled(True)
+            else:
+                self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
+                self.view.load_more_button.setVisible(False)
 
     def set_visibility_of_columns(self):
         def set_visible(col: int, b: bool):
@@ -579,8 +611,19 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         menu.addAction(_("&Export"), self.export_history_dialog)
         hbox = self.create_toolbar_buttons()
         toolbar.insertLayout(1, hbox)
+        
+        # Add "Load More" button for pagination
+        self.load_more_button = QPushButton(_("Load More..."))
+        self.load_more_button.clicked.connect(self.on_load_more)
+        self.load_more_button.setVisible(False)  # Hidden by default
+        toolbar.addWidget(self.load_more_button)
+        
         self.update_toolbar_menu()
         return toolbar
+    
+    def on_load_more(self):
+        """Called when user clicks Load More button"""
+        self.hm.load_more()
 
     def update_toolbar_menu(self):
         fx = self.main_window.fx
