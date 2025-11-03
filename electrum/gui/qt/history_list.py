@@ -306,9 +306,10 @@ class HistoryModel(CustomModel, Logger):
             include_fiat=include_fiat,
         )
         
-        # Pre-compute balance and status cache (expensive)
+        # Pre-compute balance, status cache, AND node structure (expensive)
         balance_data = {}
         status_cache = {}
+        node_structure = []  # Pre-build node structure
         running_balance = defaultdict(int)
         
         for (txid, asset), tx_item in transactions.items():
@@ -320,8 +321,15 @@ class HistoryModel(CustomModel, Logger):
             if not tx_item.get('lightning', False):
                 tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
                 status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
+            
+            # Pre-build node structure (just data, not Qt objects yet)
+            node_info = {
+                'tx_item': tx_item,
+                'children': tx_item.get('children', [])
+            }
+            node_structure.append(node_info)
         
-        return transactions, balance_data, status_cache
+        return transactions, balance_data, status_cache, node_structure
 
     @profiler
     def refresh(self, reason: str):
@@ -350,7 +358,7 @@ class HistoryModel(CustomModel, Logger):
         
         # Define success callback (runs in GUI thread)
         def on_success(result):
-            transactions, balance_data, status_cache = result
+            transactions, balance_data, status_cache, node_structure = result
             
             # Quick check if data changed
             if transactions == self.transactions:
@@ -366,19 +374,22 @@ class HistoryModel(CustomModel, Logger):
                 self._root = HistoryNode(self, None)
                 self.endRemoveRows()
             
-            # Build tree nodes
-            for tx_item in transactions.values():
+            # Build tree nodes using pre-computed structure (much faster)
+            for node_info in node_structure:
+                tx_item = node_info['tx_item']
                 node = HistoryNode(self, tx_item)
+                
+                # Apply pre-computed balance immediately
+                txid = tx_item['txid']
+                asset = tx_item.get('asset', None)
+                node._data['balance'] = balance_data.get((txid, asset), Satoshis(0))
+                
                 self._root.addChild(node)
-                for child_item in tx_item.get('children', []):
+                
+                # Add children
+                for child_item in node_info['children']:
                     child_node = HistoryNode(self, child_item)
                     node.addChild(child_node)
-            
-            # Apply pre-computed balances
-            for node in self._root._children:
-                txid = node._data['txid']
-                asset = node._data.get('asset', None)
-                node._data['balance'] = balance_data.get((txid, asset), Satoshis(0))
             
             new_length = self._root.childCount()
             self.beginInsertRows(QModelIndex(), 0, new_length-1)
