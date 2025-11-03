@@ -348,6 +348,11 @@ class HistoryModel(CustomModel, Logger):
         if self.view.maybe_defer_update():
             return
         
+        # Skip if already refreshing
+        if self._refresh_thread is not None and self._refresh_thread.isRunning():
+            self.logger.info(f"refresh: already running, skipping duplicate request from {reason}")
+            return
+        
         # Store selection before refresh
         selected = self.view.selectionModel().currentIndex()
         selected_row = selected.row() if selected else None
@@ -358,12 +363,15 @@ class HistoryModel(CustomModel, Logger):
         
         # Define background task
         def background_task():
-            return self._refresh_in_background(
+            self.logger.info(f"background_task: wrapper starting")
+            result = self._refresh_in_background(
                 wallet, fx,
                 self.get_domain(),
                 self.should_include_lightning_payments(),
                 self.should_show_fiat()
             )
+            self.logger.info(f"background_task: wrapper completed, returning result")
+            return result
         
         # Define success callback (runs in GUI thread)
         def on_success(result):
@@ -452,11 +460,24 @@ class HistoryModel(CustomModel, Logger):
             
             self.logger.info(f"on_success callback completed successfully")
         
+        # Define error callback
+        def on_error(exc_info):
+            self.logger.error(f"on_error callback invoked")
+            import traceback
+            self.logger.error(f"History refresh failed: {''.join(traceback.format_exception(*exc_info))}")
+        
         # Run in background thread
         # Note: No WaitingDialog needed - just run silently and update when done
+        self.logger.info(f"refresh: creating/reusing TaskThread")
         if self._refresh_thread is None or not self._refresh_thread.isRunning():
+            self.logger.info(f"refresh: creating new TaskThread")
             self._refresh_thread = TaskThread(self.window)
-        self._refresh_thread.add(background_task, on_success=on_success, on_error=lambda e: self.logger.error(f"History refresh failed: {e}"))
+        else:
+            self.logger.info(f"refresh: reusing existing TaskThread")
+        
+        self.logger.info(f"refresh: adding background_task to thread")
+        self._refresh_thread.add(background_task, on_success=on_success, on_error=on_error)
+        self.logger.info(f"refresh: task added to thread queue")
 
     def set_visibility_of_columns(self):
         def set_visible(col: int, b: bool):
