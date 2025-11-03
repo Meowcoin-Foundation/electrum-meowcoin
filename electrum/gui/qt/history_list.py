@@ -415,9 +415,9 @@ class HistoryModel(CustomModel, Logger):
         
         # Run in background thread
         # Note: No WaitingDialog needed - just run silently and update when done
-        if not hasattr(self, '_refresh_thread') or not self._refresh_thread.isRunning():
+        if self._refresh_thread is None or not self._refresh_thread.isRunning():
             self._refresh_thread = TaskThread(self.window)
-            self._refresh_thread.add(background_task, on_success=on_success, on_error=lambda e: self.logger.error(f"History refresh failed: {e}"))
+        self._refresh_thread.add(background_task, on_success=on_success, on_error=lambda e: self.logger.error(f"History refresh failed: {e}"))
 
     def set_visibility_of_columns(self):
         def set_visible(col: int, b: bool):
