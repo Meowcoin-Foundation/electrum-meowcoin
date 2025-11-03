@@ -467,13 +467,10 @@ class HistoryModel(CustomModel, Logger):
             self.logger.error(f"History refresh failed: {''.join(traceback.format_exception(*exc_info))}")
         
         # Run in background thread
-        # Note: No WaitingDialog needed - just run silently and update when done
-        self.logger.info(f"refresh: creating/reusing TaskThread")
-        if self._refresh_thread is None or not self._refresh_thread.isRunning():
-            self.logger.info(f"refresh: creating new TaskThread")
-            self._refresh_thread = TaskThread(self.window)
-        else:
-            self.logger.info(f"refresh: reusing existing TaskThread")
+        # CRITICAL: Always create a NEW TaskThread to avoid callback loss
+        # Reusing threads can cause race conditions where callbacks are lost
+        self.logger.info(f"refresh: creating NEW TaskThread (always fresh)")
+        self._refresh_thread = TaskThread(self.window)
         
         self.logger.info(f"refresh: adding background_task to thread")
         self._refresh_thread.add(background_task, on_success=on_success, on_error=on_error)
