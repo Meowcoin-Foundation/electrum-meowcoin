@@ -897,30 +897,45 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
                 txns.append(self.tx_notification_queue.get_nowait())
             except queue.Empty:
                 break
+        self.logger.info(f"notify_transactions: collected {len(txns)} transactions from queue")
         # Combine the transactions if there are at least three
         if len(txns) >= 3:
+            self.logger.info(f"notify_transactions: combining {len(txns)} transactions")
             total_amount = 0
             for tx in txns:
                 tx_wallet_delta = self.wallet.get_wallet_delta(tx)
                 if not tx_wallet_delta.is_relevant:
                     continue
                 total_amount += tx_wallet_delta.delta
+            self.logger.info(f"notify_transactions: calling notify with combined message")
             self.notify(_("{} new transactions: Total amount received in the new transactions {}")
                         .format(len(txns), self.format_amount_and_units(total_amount)))
+            self.logger.info(f"notify_transactions: notify completed for combined message")
         else:
+            self.logger.info(f"notify_transactions: notifying individual transactions")
             for tx in txns:
                 tx_wallet_delta = self.wallet.get_wallet_delta(tx)
                 if not tx_wallet_delta.is_relevant:
                     continue
+                self.logger.info(f"notify_transactions: calling notify for individual tx")
                 self.notify(_("New transaction: {}").format(self.format_amount_and_units(tx_wallet_delta.delta)))
+                self.logger.info(f"notify_transactions: notify completed for individual tx")
+        self.logger.info(f"notify_transactions: all notifications completed")
 
     def notify(self, message):
         if self.tray:
+            self.logger.info(f"notify: showing system tray message: {message}")
             try:
                 # this requires Qt 5.9
+                self.logger.info(f"notify: calling tray.showMessage (Qt 5.9+ method)")
                 self.tray.showMessage("Electrum", message, read_QIcon("electrum_dark_icon"), 20000)
+                self.logger.info(f"notify: tray.showMessage completed successfully")
             except TypeError:
+                self.logger.info(f"notify: Qt 5.9 method failed, using fallback")
                 self.tray.showMessage("Electrum", message, QSystemTrayIcon.Information, 20000)
+                self.logger.info(f"notify: fallback tray.showMessage completed")
+        else:
+            self.logger.info(f"notify: no tray available, skipping notification")
 
     def timer_actions(self):
         # refresh invoices and requests because they show ETA
