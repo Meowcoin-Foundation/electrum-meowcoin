@@ -298,21 +298,29 @@ class HistoryModel(CustomModel, Logger):
 
     def _refresh_in_background(self, wallet, fx, domain, include_lightning, include_fiat):
         """Heavy computation in background thread - returns processed data"""
+        self.logger.info(f"_refresh_in_background: started in background thread")
+        
         # Get full history (expensive)
+        self.logger.info(f"_refresh_in_background: calling get_full_history")
         transactions = wallet.get_full_history(
             fx,
             onchain_domain=domain,
             include_lightning=include_lightning,
             include_fiat=include_fiat,
         )
+        self.logger.info(f"_refresh_in_background: got {len(transactions)} transactions")
         
         # Pre-compute balance, status cache, AND node structure (expensive)
+        self.logger.info(f"_refresh_in_background: computing balance and status cache")
         balance_data = {}
         status_cache = {}
         node_structure = []  # Pre-build node structure
         running_balance = defaultdict(int)
         
-        for (txid, asset), tx_item in transactions.items():
+        for idx, ((txid, asset), tx_item) in enumerate(transactions.items()):
+            if idx % 1000 == 0:
+                self.logger.info(f"_refresh_in_background: processing tx {idx}/{len(transactions)}")
+            
             asset_key = tx_item.get('asset', None)
             sats = tx_item['value']
             running_balance[asset_key] += sats.value
@@ -329,6 +337,7 @@ class HistoryModel(CustomModel, Logger):
             }
             node_structure.append(node_info)
         
+        self.logger.info(f"_refresh_in_background: completed, returning data")
         return transactions, balance_data, status_cache, node_structure
 
     @profiler
@@ -358,16 +367,21 @@ class HistoryModel(CustomModel, Logger):
         
         # Define success callback (runs in GUI thread)
         def on_success(result):
+            self.logger.info(f"on_success callback started in GUI thread")
             transactions, balance_data, status_cache, node_structure = result
+            self.logger.info(f"on_success: received {len(transactions)} transactions")
             
             # Quick check if data changed
             if transactions == self.transactions:
+                self.logger.info(f"on_success: transactions unchanged, returning")
                 return
             
             # GUI updates (fast - just tree manipulation)
+            self.logger.info(f"on_success: setting visibility of columns")
             self.set_visibility_of_columns()
             
             old_length = self._root.childCount()
+            self.logger.info(f"on_success: removing old rows (old_length={old_length})")
             if old_length != 0:
                 self.beginRemoveRows(QModelIndex(), 0, old_length)
                 self.transactions.clear()
@@ -375,7 +389,11 @@ class HistoryModel(CustomModel, Logger):
                 self.endRemoveRows()
             
             # Build tree nodes using pre-computed structure (much faster)
-            for node_info in node_structure:
+            self.logger.info(f"on_success: building {len(node_structure)} tree nodes")
+            for idx, node_info in enumerate(node_structure):
+                if idx % 1000 == 0:
+                    self.logger.info(f"on_success: processing node {idx}/{len(node_structure)}")
+                
                 tx_item = node_info['tx_item']
                 node = HistoryNode(self, tx_item)
                 
@@ -391,22 +409,28 @@ class HistoryModel(CustomModel, Logger):
                     child_node = HistoryNode(self, child_item)
                     node.addChild(child_node)
             
+            self.logger.info(f"on_success: tree nodes built, inserting rows")
             new_length = self._root.childCount()
             self.beginInsertRows(QModelIndex(), 0, new_length-1)
             self.transactions = transactions
             self.endInsertRows()
+            self.logger.info(f"on_success: rows inserted")
             
             # Restore selection
             if selected_row:
+                self.logger.info(f"on_success: restoring selection")
                 self.view.selectionModel().select(
                     self.createIndex(selected_row, 0),
                     QItemSelectionModel.Rows | QItemSelectionModel.SelectCurrent
                 )
             
+            self.logger.info(f"on_success: calling view.filter()")
             self.view.filter()
+            self.logger.info(f"on_success: filter() completed")
             
             # Update time filter
             if not self.view.years and self.transactions:
+                self.logger.info(f"on_success: updating time filter")
                 start_date = date.today()
                 end_date = date.today()
                 if len(self.transactions) > 0:
@@ -416,13 +440,17 @@ class HistoryModel(CustomModel, Logger):
                 self.view.period_combo.insertItems(1, self.view.years)
             
             # Apply status cache
+            self.logger.info(f"on_success: applying status cache ({len(status_cache)} items)")
             self.tx_status_cache.clear()
             self.tx_status_cache.update(status_cache)
             
             # Update counter
+            self.logger.info(f"on_success: updating counter")
             num_tx = len(set(v['txid'] for v in self.transactions.values()))
             if self.view:
                 self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
+            
+            self.logger.info(f"on_success callback completed successfully")
         
         # Run in background thread
         # Note: No WaitingDialog needed - just run silently and update when done
