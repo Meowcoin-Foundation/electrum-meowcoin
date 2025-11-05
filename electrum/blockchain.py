@@ -577,6 +577,11 @@ class Blockchain(Logger):
         prev_hash = self.get_hash(start_height - 1)
         headers = {}
         
+        # DEBUG: Log raw data for chunk starting at height 1
+        if start_height == 1:
+            self.logger.error(f'DEBUG verify_chunk height 1: data length={len(data)} bytes')
+            self.logger.error(f'DEBUG verify_chunk: First 160 bytes (hex): {data[:160].hex()}')
+        
         while p < len(data):
             # Determine expected header length *before* slicing so we stay aligned
             # CRITICAL FIX: Check AuxPOW first (takes precedence over KAWPOW)
@@ -606,6 +611,16 @@ class Blockchain(Logger):
                 raise Exception('Invalid header length: {}'.format(len(raw)))
             header = deserialize_header(raw, s)
             headers[header.get('block_height')] = header
+            
+            # DEBUG: Log deserialized header for height 2
+            if s == 2:
+                self.logger.error(f'DEBUG deserialize_header height 2:')
+                self.logger.error(f'  Raw hex ({len(raw)} bytes): {raw.hex()}')
+                self.logger.error(f'  Version: 0x{header["version"]:08x}')
+                self.logger.error(f'  Timestamp: {header["timestamp"]} (0x{header["timestamp"]:08x})')
+                self.logger.error(f'  Bits: 0x{header["bits"]:08x}')
+                self.logger.error(f'  Prev_hash: {header["prev_block_hash"]}')
+                self.logger.error(f'  Nonce: {header.get("nonce", "N/A")}')
             
             # Don't bother with the target of headers in the middle of
             # DGW checkpoints
