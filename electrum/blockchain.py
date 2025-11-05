@@ -906,23 +906,37 @@ class Blockchain(Logger):
         delta = height - self.forkpoint
         name = self.path()
         self.assert_headers_file_available(name)
+        
+        # CRITICAL: Read timestamp first to determine header size (match daemon logic)
+        # Headers are stored with fixed 120-byte offsets, but actual size varies
         with open(name, 'rb') as f:
             f.seek(delta * HEADER_SIZE)
-            h = f.read(HEADER_SIZE)
-            if len(h) < HEADER_SIZE:
-                raise Exception('Expected to read a full header. This was only {} bytes'.format(len(h)))
-        if h == bytes([0])*HEADER_SIZE:
-            return None
+            # Read timestamp (bytes 68-72) to determine header format
+            f.seek(delta * HEADER_SIZE + 68)
+            timestamp_bytes = f.read(4)
+            if len(timestamp_bytes) < 4:
+                return None
+            timestamp = int.from_bytes(timestamp_bytes, byteorder='little')
+            
+            # Determine header size based on timestamp and version (match daemon serialization)
+            f.seek(delta * HEADER_SIZE)
+            version_bytes = f.read(4)
+            version_int = int.from_bytes(version_bytes, byteorder='little')
+            is_auxpow = bool(version_int & (1 << 8)) and height >= constants.net.AuxPowActivationHeight
+            
+            # Read correct size: 80 bytes if pre-KAWPOW or AuxPOW, 120 bytes otherwise
+            f.seek(delta * HEADER_SIZE)
+            if timestamp < constants.net.KawpowActivationTS or is_auxpow:
+                h = f.read(LEGACY_HEADER_SIZE)  # 80 bytes
+                if len(h) < LEGACY_HEADER_SIZE:
+                    raise Exception(f'Expected to read {LEGACY_HEADER_SIZE} bytes header at height {height}. Got {len(h)} bytes')
+            else:
+                h = f.read(HEADER_SIZE)  # 120 bytes
+                if len(h) < HEADER_SIZE:
+                    raise Exception(f'Expected to read {HEADER_SIZE} bytes header at height {height}. Got {len(h)} bytes')
         
-        # CRITICAL: Unpad AuxPOW headers before deserializing
-        # AuxPOW headers are stored as 120 bytes (padded) but need to be read as 80 bytes
-        if height >= constants.net.AuxPowActivationHeight and len(h) == HEADER_SIZE:
-            # Check if this looks like a padded AuxPOW header (version bit 8 set)
-            version_int = int.from_bytes(h[0:4], byteorder='little')
-            if version_int & (1 << 8):  # AuxPOW bit set
-                # Check if last 40 bytes are padding (all zeros)
-                if h[LEGACY_HEADER_SIZE:] == bytes(HEADER_SIZE - LEGACY_HEADER_SIZE):
-                    h = h[:LEGACY_HEADER_SIZE]  # Remove padding
+        if h == bytes([0])*len(h):
+            return None
         
         return deserialize_header(h, height)
 
