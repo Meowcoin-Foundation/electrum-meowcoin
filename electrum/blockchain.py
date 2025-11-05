@@ -84,21 +84,33 @@ class NotEnoughHeaders(Exception):
     pass
 
 def get_block_algo(header: dict, height: int) -> str:
-    """Determine the mining algorithm used for a block.
+    """Determine the mining algorithm used for a block based on timestamp and version.
     
     Returns:
         'scrypt' for AuxPOW blocks
-        'meowpow' for native MeowPow blocks
+        'meowpow' for MeowPow blocks (post-MeowpowActivationTS)
+        'kawpow' for KawPow blocks (between KawpowActivationTS and MeowpowActivationTS)
+        'x16rv2' for X16Rv2 blocks (between X16Rv2ActivationTS and KawpowActivationTS)
+        'x16r' for original X16R blocks (pre-X16Rv2ActivationTS)
     """
-    # Check if AuxPOW is active at this height
+    timestamp = header.get('timestamp', 0)
+    version_int = header.get('version', 0)
+    
+    # Check if AuxPOW (version bit takes precedence)
     if height >= constants.net.AuxPowActivationHeight:
-        # Check version bit to determine if this is an AuxPOW block
-        version_int = header.get('version', 0)
         is_auxpow = bool(version_int & (1 << 8))
-        return 'scrypt' if is_auxpow else 'meowpow'
-    else:
-        # Before AuxPOW activation, all blocks are MeowPow
+        if is_auxpow:
+            return 'scrypt'
+    
+    # Determine algorithm based on timestamp
+    if timestamp >= constants.net.MeowpowActivationTS:
         return 'meowpow'
+    elif timestamp >= constants.net.KawpowActivationTS:
+        return 'kawpow'
+    elif timestamp >= constants.net.X16Rv2ActivationTS:
+        return 'x16rv2'
+    else:
+        return 'x16r'
 
 def serialize_header(header_dict: dict) -> str:
     # CRITICAL: Base serialization on header STRUCTURE, not timestamp
@@ -162,31 +174,22 @@ def deserialize_header(s: bytes, height: int) -> dict:
         
         if not is_auxpow_padded:
             # Real MeowPow header (120 bytes)
-            h['nheight'] = int(hash_encode(s[76:80]), 16)
-            h['nonce'] = int(hash_encode(s[80:88]), 16)
-            h['mix_hash'] = hash_encode(s[88:120])
+            h['nheight'] = hex_to_int(s[76:80])
+            h['nonce'] = hex_to_int(s[80:88])  # 64-bit nonce
+            h['mix_hash'] = hash_encode(s[88:120])  # mix_hash is a hash, keep hash_encode
         else:
             # Padded AuxPOW header - nonce is at position 76-80 (4 bytes)
-            nonce_bytes = s[76:80]
-            h['nonce'] = int(hash_encode(nonce_bytes), 16)
+            h['nonce'] = hex_to_int(s[76:80])
     else:  # 80 bytes - could be AuxPOW or legacy
         # AuxPOW blocks are identified by version bit AND height
         version_int = h['version']
         is_auxpow = bool(version_int & (1 << 8)) and height >= constants.net.AuxPowActivationHeight
         if is_auxpow:
             # This is an AuxPOW block (80 bytes) - nonce is at position 76-80 (4 bytes)
-            nonce_bytes = s[76:80]
-            h['nonce'] = int(hash_encode(nonce_bytes), 16)
-            # Debug: log nonce value for AuxPoW blocks
-            if h['nonce'] > 0xFFFFFFFF:
-                print(f"DEBUG: AuxPoW nonce too large: {h['nonce']} (hex: {hash_encode(nonce_bytes)})")
+            h['nonce'] = hex_to_int(s[76:80])
         else:
             # Legacy block (80 bytes) - nonce is at position 76-80 (4 bytes)
-            nonce_bytes = s[76:80]
-            h['nonce'] = int(hash_encode(nonce_bytes), 16)
-            # Debug: log nonce value for legacy blocks
-            if h['nonce'] > 0xFFFFFFFF:
-                print(f"DEBUG: Legacy nonce too large: {h['nonce']} (hex: {hash_encode(nonce_bytes)})")
+            h['nonce'] = hex_to_int(s[76:80])
     
     h['block_height'] = height
     return h
@@ -584,17 +587,21 @@ class Blockchain(Logger):
         
         while p < len(data):
             # Determine expected header length *before* slicing so we stay aligned
-            # CRITICAL FIX: Check AuxPOW first (takes precedence over KAWPOW)
-            if s >= constants.net.AuxPowActivationHeight:
-                # After AuxPOW activation, check version bit to determine header size
-                version_int = int.from_bytes(data[p:p+4], byteorder='little', signed=False)
-                is_auxpow = bool(version_int & (1 << 8))
-                header_len = LEGACY_HEADER_SIZE if is_auxpow else HEADER_SIZE
-            elif s >= constants.net.KawpowActivationHeight:
-                header_len = HEADER_SIZE  # post-Kawpow headers always 120 bytes
+            # CRITICAL: Must match daemon's serialization logic which uses TIMESTAMP, not HEIGHT
+            # Daemon logic: if (nTime < KAWPOW_TS || IsAuxpow) { 80 bytes } else { 120 bytes }
+            
+            # Read timestamp from header to determine format (bytes 68-72)
+            timestamp = int.from_bytes(data[p+68:p+72], byteorder='little')
+            
+            # Read version to check for AuxPOW bit
+            version_int = int.from_bytes(data[p:p+4], byteorder='little', signed=False)
+            is_auxpow = bool(version_int & (1 << 8)) and s >= constants.net.AuxPowActivationHeight
+            
+            # Match daemon serialization logic: timestamp-based + AuxPOW check
+            if timestamp < constants.net.KawpowActivationTS or is_auxpow:
+                header_len = LEGACY_HEADER_SIZE  # 80 bytes
             else:
-                # Pre-KAWPOW: always 80 bytes (x16r/x16rv2)
-                header_len = LEGACY_HEADER_SIZE
+                header_len = HEADER_SIZE  # 120 bytes (KAWPOW/MEOWPOW)
 
             raw = data[p:p + header_len]
             
