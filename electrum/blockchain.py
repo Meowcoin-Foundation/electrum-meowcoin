@@ -145,8 +145,8 @@ def deserialize_header(s: bytes, height: int) -> dict:
     h = {'version': hex_to_int(s[0:4]),
          'prev_block_hash': hash_encode(s[4:36]),
          'merkle_root': hash_encode(s[36:68]),
-         'timestamp': int(hash_encode(s[68:72]), 16),
-         'bits': int(hash_encode(s[72:76]), 16)}
+         'timestamp': hex_to_int(s[68:72]),
+         'bits': hex_to_int(s[72:76])}
     
     # Handle different header types based on length and version bit
     if len(s) == HEADER_SIZE:  # 120 bytes - could be MeowPow OR padded AuxPOW
