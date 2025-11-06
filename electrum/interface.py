@@ -827,6 +827,14 @@ class Interface(Logger):
                 # in the simple case, height == self.tip+1
                 if height <= self.tip:
                     await self.sync_until(height)
+                
+                # CRITICAL: After processing, check if more blocks arrived
+                # Server may have mined more blocks while we were processing
+                final_blockchain_height = self.blockchain.height()
+                if final_blockchain_height < self.tip:
+                    self.logger.info(f"Continuing sync: blockchain={final_blockchain_height}, server tip={self.tip}")
+                    await self.sync_until(final_blockchain_height + 1)
+                
                 return True
 
     async def sync_until(self, height, next_height=None):
