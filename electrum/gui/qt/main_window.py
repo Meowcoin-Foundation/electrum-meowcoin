@@ -489,7 +489,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
     @qt_event_listener
     def on_event_blockchain_updated(self, *args):
         # update the number of confirmations in history
-        self.refresh_tabs()
+        # Use 'blockchain_updated' reason to enable cache optimization
+        self.history_model.refresh('blockchain_updated')
+        # Still refresh other tabs normally
+        self.receive_tab.request_list.refresh_all()
+        self.send_tab.invoice_list.refresh_all()
+        self.address_list.refresh_all()
+        self.utxo_list.refresh_all()
+        self.contact_list.refresh_all()
 
     @qt_event_listener
     def on_event_on_quotes(self, *args):

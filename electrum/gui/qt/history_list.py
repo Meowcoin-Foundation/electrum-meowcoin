@@ -28,7 +28,7 @@ import sys
 import time
 import datetime
 from datetime import date
-from typing import TYPE_CHECKING, Tuple, Dict, Any
+from typing import TYPE_CHECKING, Tuple, Dict, Any, Optional
 import threading
 import enum
 from decimal import Decimal
@@ -266,6 +266,10 @@ class HistoryModel(CustomModel, Logger):
         self._full_transactions = OrderedDictWithIndex()
         self._displayed_count = 500  # Show 500 most recent transactions initially
         self._page_size = 500  # Load 500 more each time
+        # Cache for history optimization
+        self._cached_history = None  # type: Optional[OrderedDictWithIndex]
+        self._cached_blockchain_height = None  # type: Optional[int]
+        self._cached_domain_hash = None  # type: Optional[int]
 
     def set_view(self, history_list: 'HistoryList'):
         # FIXME HistoryModel and HistoryList mutually depend on each other.
@@ -305,6 +309,70 @@ class HistoryModel(CustomModel, Logger):
         self.logger.info(f"Loading more transactions, new limit: {self._displayed_count}")
         self.refresh('load_more')
 
+    def _get_domain_hash(self):
+        """Calculate hash of domain addresses for cache invalidation"""
+        domain = tuple(sorted(self.get_domain()))
+        return hash(domain)
+
+    def _update_confirmations_only(self, all_transactions: OrderedDictWithIndex):
+        """Optimized update: only refresh confirmations without recalculating entire history"""
+        if not self._cached_history:
+            return False
+        
+        wallet = self.window.wallet
+        network = wallet.network
+        if not network:
+            return False
+        
+        current_height = network.get_local_height()
+        if current_height == self._cached_blockchain_height:
+            # No new blocks, nothing to update
+            return True
+        
+        # Update confirmations for all cached transactions
+        updated_count = 0
+        for (txid, asset), tx_item in self._cached_history.items():
+            # Get updated height and confirmations
+            tx_mined_status = wallet.adb.get_tx_height(txid)
+            old_height = tx_item.get('height', 0)
+            old_conf = tx_item.get('confirmations', 0)
+            
+            # Update if height or confirmations changed
+            if tx_mined_status.height != old_height or tx_mined_status.conf != old_conf:
+                tx_item['height'] = tx_mined_status.height
+                tx_item['confirmations'] = tx_mined_status.conf
+                tx_item['timestamp'] = tx_mined_status.timestamp
+                tx_item['date'] = timestamp_to_datetime(tx_mined_status.timestamp)
+                updated_count += 1
+        
+        # Update displayed transactions
+        for (txid, asset), tx_item in self.transactions.items():
+            if (txid, asset) in self._cached_history:
+                cached_item = self._cached_history[(txid, asset)]
+                tx_item['height'] = cached_item['height']
+                tx_item['confirmations'] = cached_item['confirmations']
+                tx_item['timestamp'] = cached_item['timestamp']
+                tx_item['date'] = cached_item['date']
+        
+        # Update status cache
+        self.tx_status_cache.clear()
+        for (txid, asset), tx_item in self.transactions.items():
+            if not tx_item.get('lightning', False):
+                tx_mined_info = HistoryModel._tx_mined_info_from_tx_item(tx_item)
+                self.tx_status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
+        
+        # Update blockchain height cache
+        self._cached_blockchain_height = current_height
+        
+        # Notify view of changes
+        if updated_count > 0:
+            topLeft = self.createIndex(0, 0)
+            bottomRight = self.createIndex(len(self.transactions) - 1, len(HistoryColumns) - 1)
+            self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
+            self.logger.info(f"Updated confirmations for {updated_count} transactions (cached)")
+        
+        return True
+
     @profiler
     def refresh(self, reason: str):
         self.logger.info(f"refreshing... reason: {reason}")
@@ -312,13 +380,51 @@ class HistoryModel(CustomModel, Logger):
         assert self.view, 'view not set'
         if self.view.maybe_defer_update():
             return
+        
+        wallet = self.window.wallet
+        network = wallet.network
+        current_height = network.get_local_height() if network else None
+        domain_hash = self._get_domain_hash()
+        
+        # Check if we can use cached history and only update confirmations
+        # Only use cache for blockchain_updated (new blocks, no new transactions)
+        # For other reasons (wallet_updated, update_tabs, etc.), invalidate cache
+        is_blockchain_only_update = reason in ('blockchain_updated', 'refresh_tabs')
+        can_use_cache = (
+            is_blockchain_only_update and
+            self._cached_history is not None and
+            self._cached_domain_hash == domain_hash and
+            current_height is not None
+        )
+        
+        if can_use_cache:
+            # Check if transaction count changed (new transactions = invalidate cache)
+            cached_tx_count = len(self._cached_history) if self._cached_history else 0
+            # Quick check: get current transaction count without full recalculation
+            try:
+                current_tx_count = len(list(wallet.adb.get_history(domain=self.get_domain())))
+                if cached_tx_count == current_tx_count:
+                    # Same number of transactions, safe to update only confirmations
+                    if self._update_confirmations_only(self._full_transactions):
+                        self.logger.info("Using cached history, updated confirmations only")
+                        return
+            except Exception:
+                # If check fails, fall through to full refresh
+                pass
+        
+        # Invalidate cache for full refresh (unless it's a blockchain-only update)
+        if not is_blockchain_only_update:
+            self._cached_history = None
+            self._cached_blockchain_height = None
+            self._cached_domain_hash = None
+        
+        # Full refresh: recalculate everything
         selected = self.view.selectionModel().currentIndex()
         selected_row = None
         if selected:
             selected_row = selected.row()
         fx = self.window.fx
         if fx: fx.history_used_spot = False
-        wallet = self.window.wallet
         self.set_visibility_of_columns()
         
         # Get ALL transactions but only display a subset (pagination)
@@ -329,8 +435,11 @@ class HistoryModel(CustomModel, Logger):
             include_fiat=self.should_show_fiat(),
         )
         
-        # Store full list for pagination
+        # Store full list for pagination and cache
         self._full_transactions = all_transactions
+        self._cached_history = OrderedDictWithIndex(all_transactions.items())
+        self._cached_blockchain_height = current_height
+        self._cached_domain_hash = domain_hash
         total_count = len(all_transactions)
         
         # Only show the most recent _displayed_count transactions
