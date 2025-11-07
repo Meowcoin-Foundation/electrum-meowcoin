@@ -370,6 +370,7 @@ def _get_cert_path_for_host(*, config: 'SimpleConfig', host: str) -> str:
 class Interface(Logger):
 
     LOGGING_SHORTCUT = 'i'
+    CHUNK_LOG_INTERVAL = 500_000
 
     def __init__(self, *, network: 'Network', server: ServerAddr, proxy: Optional[dict]):
         self.ready = network.asyncio_loop.create_future()
@@ -402,6 +403,7 @@ class Interface(Logger):
         self.tip = 0
 
         self.fee_estimates_eta = {}  # type: Dict[int, int]
+        self._chunk_request_count = 0
 
         # Dump network messages (only for this interface).  Set at runtime from the console.
         self.debug = False
@@ -644,7 +646,14 @@ class Interface(Logger):
         if can_return_early and ret:
             return
 
-        self.logger.info(f"requesting chunk from height {height}")
+        self._chunk_request_count += 1
+        if (
+            self._chunk_request_count == 1
+            or self._chunk_request_count % self.CHUNK_LOG_INTERVAL == 0
+        ):
+            self.logger.info(
+                f"requested {self._chunk_request_count} header chunks so far (latest start height {height})"
+            )
         size = 2016
         if tip is not None:
             size = min(size, tip - height + 1)

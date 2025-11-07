@@ -52,6 +52,12 @@ class InnerNodeOfSpvProofIsValidTx(MerkleVerificationFailure): pass
 class SPV(NetworkJobOnDefaultServer):
     """ Simple Payment Verification """
 
+    MERKLE_LOG_INTERVAL = 500_000
+    HEADER_CHUNK_LOG_INTERVAL = 500_000
+    VERIFIED_LOG_INTERVAL = 500_000
+    HEADER_READY_LOG_INTERVAL = 500_000
+    DEFERRAL_LOG_INTERVAL = 500_000
+
     def __init__(self, network: 'Network', wallet: 'AddressSynchronizer'):
         self.wallet = wallet
         NetworkJobOnDefaultServer.__init__(self, network)
@@ -62,6 +68,11 @@ class SPV(NetworkJobOnDefaultServer):
         self.requested_merkle = set()  # txid set of pending requests
         self.verifying = set()
         self._deferred_tx_hashes = {}  # tx_hash -> (tx_height, retry_count, last_attempt_time) - txs waiting for headers
+        self._merkle_requests = 0
+        self._header_chunk_requests = 0
+        self._verified_count = 0
+        self._header_ready_count = 0
+        self._deferral_count = 0
 
     async def _run_tasks(self, *, taskgroup):
         await super()._run_tasks(taskgroup=taskgroup)
@@ -135,7 +146,14 @@ class SPV(NetworkJobOnDefaultServer):
                 self._deferred_tx_hashes[tx_hash] = (tx_height, retry_count + 1, current_time)
             else:
                 self._deferred_tx_hashes[tx_hash] = (tx_height, 0, current_time)
-                self.logger.info(f'deferring tx {tx_hash[:16]}... (height {tx_height} > local {local_height})')
+                self._deferral_count += 1
+                if (
+                    self._deferral_count == 1
+                    or self._deferral_count % self.DEFERRAL_LOG_INTERVAL == 0
+                ):
+                    self.logger.info(
+                        f'deferred {self._deferral_count} transactions so far (latest tx {tx_hash[:16]}..., height {tx_height} > local {local_height})'
+                    )
             return True
         # if it's in the checkpoint region, we still might not have the header
         header = self.blockchain.read_header(tx_height)
@@ -150,20 +168,40 @@ class SPV(NetworkJobOnDefaultServer):
                     if tx_height < constants.net.max_checkpoint():
                         # FIXME these requests are not counted (self._requests_sent += 1)
                         await self.taskgroup.spawn(self.interface.request_chunk(tx_height, None, can_return_early=True))
-                        if retry_count == 0:
-                            self.logger.info(f'requesting chunk for header {tx_height} (needed for tx {tx_hash[:16]}...)')
+                        self._header_chunk_requests += 1
+                        if (
+                            self._header_chunk_requests == 1
+                            or self._header_chunk_requests % self.HEADER_CHUNK_LOG_INTERVAL == 0
+                        ):
+                            self.logger.info(
+                                f'requested {self._header_chunk_requests} header chunks so far (latest height {tx_height})'
+                            )
             else:
                 self._deferred_tx_hashes[tx_hash] = (tx_height, 0, current_time)
                 if tx_height < constants.net.max_checkpoint():
                     # FIXME these requests are not counted (self._requests_sent += 1)
                     await self.taskgroup.spawn(self.interface.request_chunk(tx_height, None, can_return_early=True))
-                    self.logger.info(f'requesting chunk for header {tx_height} (needed for tx {tx_hash[:16]}...)')
+                    self._header_chunk_requests += 1
+                    if (
+                        self._header_chunk_requests == 1
+                        or self._header_chunk_requests % self.HEADER_CHUNK_LOG_INTERVAL == 0
+                    ):
+                        self.logger.info(
+                            f'requested {self._header_chunk_requests} header chunks so far (latest height {tx_height})'
+                        )
             return True
         # Header is now available - remove from deferred and request now
         if tx_hash in self._deferred_tx_hashes:
             _, retry_count, _ = self._deferred_tx_hashes[tx_hash]
             if retry_count > 0:
-                self.logger.info(f'header {tx_height} now available for tx {tx_hash[:16]}... (after {retry_count} deferrals)')
+                self._header_ready_count += 1
+                if (
+                    self._header_ready_count == 1
+                    or self._header_ready_count % self.HEADER_READY_LOG_INTERVAL == 0
+                ):
+                    self.logger.info(
+                        f'headers became available for {self._header_ready_count} deferred transactions so far (latest tx {tx_hash[:16]}..., height {tx_height}, retries {retry_count})'
+                    )
         self._deferred_tx_hashes.pop(tx_hash, None)
         if add_to_requested_set:
             self.requested_merkle.add(tx_hash)
@@ -705,7 +743,14 @@ class SPV(NetworkJobOnDefaultServer):
     async def _request_and_verify_single_proof(self, tx_hash, tx_height, *, quick_return=False):
         if quick_return and (tx_hash in self.merkle_roots or self.wallet.db.get_verified_tx(tx_hash)):
             return
-        self.logger.info(f'requesting merkle {tx_hash}')
+        self._merkle_requests += 1
+        if (
+            self._merkle_requests == 1
+            or self._merkle_requests % self.MERKLE_LOG_INTERVAL == 0
+        ):
+            self.logger.info(
+                f'requested {self._merkle_requests} merkle proofs so far (latest tx {tx_hash[:16]}...)'
+            )
         
         merkle = None
         try:
@@ -756,7 +801,14 @@ class SPV(NetworkJobOnDefaultServer):
         self.requested_merkle.discard(tx_hash)
         self._deferred_tx_hashes.pop(tx_hash, None)
         self.merkle_roots[tx_hash] = header.get('merkle_root')
-        self.logger.info(f"verified {tx_hash}")    
+        self._verified_count += 1
+        if (
+            self._verified_count == 1
+            or self._verified_count % self.VERIFIED_LOG_INTERVAL == 0
+        ):
+            self.logger.info(
+                f'verified {self._verified_count} merkle proofs so far (latest tx {tx_hash[:16]}...)'
+            )    
 
         return pos, header
         
