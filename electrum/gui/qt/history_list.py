@@ -486,6 +486,8 @@ class HistoryModel(CustomModel, Logger):
                 self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
                 self.logger.info(f"Incremental update: {updated_conf_count} confirmations updated, {new_tx_added} new transactions added")
         
+        self._update_pagination_widgets()
+
         return True
 
     @profiler
@@ -647,17 +649,21 @@ class HistoryModel(CustomModel, Logger):
             if not tx_item.get('lightning', False):
                 tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
                 self.tx_status_cache[(txid, asset)] = self.window.wallet.get_tx_status(txid, tx_mined_info)
-        # update counter with pagination info
-        num_tx = len(set(v['txid'] for v in self.transactions.values()))
-        total_tx = len(set(v['txid'] for v in self._full_transactions.values()))
-        if self.view:
-            if num_tx < total_tx:
-                self.view.num_tx_label.setText(_("Showing {} of {} transactions").format(num_tx, total_tx))
-                self.view.load_more_button.setVisible(True)
-                self.view.load_more_button.setEnabled(True)
-            else:
-                self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
-                self.view.load_more_button.setVisible(False)
+        self._update_pagination_widgets()
+
+    def _update_pagination_widgets(self):
+        """Update toolbar label/button that reflect pagination state."""
+        if not self.view:
+            return
+        num_tx = len({v['txid'] for v in self.transactions.values()})
+        total_tx = len({v['txid'] for v in self._full_transactions.values()}) if self._full_transactions else num_tx
+        if num_tx < total_tx:
+            self.view.num_tx_label.setText(_("Showing {} of {} transactions").format(num_tx, total_tx))
+            self.view.load_more_button.setVisible(True)
+            self.view.load_more_button.setEnabled(True)
+        else:
+            self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
+            self.view.load_more_button.setVisible(False)
 
     def set_visibility_of_columns(self):
         def set_visible(col: int, b: bool):
