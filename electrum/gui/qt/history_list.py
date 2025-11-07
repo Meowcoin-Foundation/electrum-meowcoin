@@ -437,7 +437,10 @@ class HistoryModel(CustomModel, Logger):
         
         # Store full list for pagination and cache
         self._full_transactions = all_transactions
-        self._cached_history = OrderedDictWithIndex(all_transactions.items())
+        # Create cached history copy (OrderedDictWithIndex doesn't accept constructor args)
+        self._cached_history = OrderedDictWithIndex()
+        for key, value in all_transactions.items():
+            self._cached_history[key] = value
         self._cached_blockchain_height = current_height
         self._cached_domain_hash = domain_hash
         total_count = len(all_transactions)
