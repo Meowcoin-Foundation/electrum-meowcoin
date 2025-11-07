@@ -373,6 +373,119 @@ class HistoryModel(CustomModel, Logger):
         
         return True
 
+    def _update_incremental(self, new_tx_count: int):
+        """Incremental update: update confirmations + add only new transactions"""
+        if not self._cached_history:
+            return False
+        
+        wallet = self.window.wallet
+        network = wallet.network
+        if not network:
+            return False
+        
+        current_height = network.get_local_height()
+        
+        # First, update confirmations for existing cached transactions
+        updated_conf_count = 0
+        for (txid, asset), tx_item in self._cached_history.items():
+            tx_mined_status = wallet.adb.get_tx_height(txid)
+            old_height = tx_item.get('height', 0)
+            old_conf = tx_item.get('confirmations', 0)
+            
+            if tx_mined_status.height != old_height or tx_mined_status.conf != old_conf:
+                tx_item['height'] = tx_mined_status.height
+                tx_item['confirmations'] = tx_mined_status.conf
+                tx_item['timestamp'] = tx_mined_status.timestamp
+                tx_item['date'] = timestamp_to_datetime(tx_mined_status.timestamp)
+                updated_conf_count += 1
+        
+        # Get only the NEW transactions (those not in cache)
+        # We'll get full history but only process new ones
+        all_transactions = wallet.get_full_history(
+            self.window.fx,
+            onchain_domain=self.get_domain(),
+            include_lightning=self.should_include_lightning_payments(),
+            include_fiat=self.should_show_fiat(),
+        )
+        
+        # Add new transactions to cache
+        new_tx_added = 0
+        for key, tx_item in all_transactions.items():
+            if key not in self._cached_history:
+                self._cached_history[key] = tx_item
+                new_tx_added += 1
+        
+        # Update full_transactions with new data
+        self._full_transactions = all_transactions
+        
+        # Update displayed transactions: update confirmations + add new ones
+        # Rebuild displayed list to include new transactions at the top
+        displayed_transactions = OrderedDictWithIndex()
+        for idx, (key, tx_item) in enumerate(all_transactions.items()):
+            if idx >= self._displayed_count:
+                break
+            displayed_transactions[key] = tx_item
+            # Update confirmations for displayed items from cache
+            if key in self._cached_history:
+                cached_item = self._cached_history[key]
+                tx_item['height'] = cached_item['height']
+                tx_item['confirmations'] = cached_item['confirmations']
+                tx_item['timestamp'] = cached_item['timestamp']
+                tx_item['date'] = cached_item['date']
+        
+        # Update blockchain height cache
+        self._cached_blockchain_height = current_height
+        
+        # If displayed transactions changed, rebuild the view
+        if displayed_transactions != self.transactions:
+            # Rebuild view with updated data
+            old_length = self._root.childCount()
+            if old_length != 0:
+                self.beginRemoveRows(QModelIndex(), 0, old_length)
+                self.transactions.clear()
+                self._root = HistoryNode(self, None)
+                self.endRemoveRows()
+            
+            parents = {}
+            for tx_item in displayed_transactions.values():
+                node = HistoryNode(self, tx_item)
+                self._root.addChild(node)
+                for child_item in tx_item.get('children', []):
+                    child_node = HistoryNode(self, child_item)
+                    node.addChild(child_node)
+            
+            # Compute balance
+            balance = defaultdict(int)
+            for node in self._root._children:
+                asset = node._data.get('asset', None)
+                sats = node._data['value']
+                balance[asset] += sats.value
+                node._data['balance'] = Satoshis(balance[asset])
+            
+            new_length = self._root.childCount()
+            self.beginInsertRows(QModelIndex(), 0, new_length-1)
+            self.transactions = displayed_transactions
+            self.endInsertRows()
+            
+            # Update status cache
+            self.tx_status_cache.clear()
+            for (txid, asset), tx_item in self.transactions.items():
+                if not tx_item.get('lightning', False):
+                    tx_mined_info = HistoryModel._tx_mined_info_from_tx_item(tx_item)
+                    self.tx_status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
+            
+            self.view.filter()
+            self.logger.info(f"Incremental update: {updated_conf_count} confirmations updated, {new_tx_added} new transactions added")
+        else:
+            # Only confirmations changed, just notify view
+            if updated_conf_count > 0:
+                topLeft = self.createIndex(0, 0)
+                bottomRight = self.createIndex(len(self.transactions) - 1, len(HistoryColumns) - 1)
+                self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
+                self.logger.info(f"Incremental update: {updated_conf_count} confirmations updated, {new_tx_added} new transactions added")
+        
+        return True
+
     @profiler
     def refresh(self, reason: str):
         self.logger.info(f"refreshing... reason: {reason}")
@@ -386,34 +499,47 @@ class HistoryModel(CustomModel, Logger):
         current_height = network.get_local_height() if network else None
         domain_hash = self._get_domain_hash()
         
-        # Check if we can use cached history and only update confirmations
-        # Only use cache for blockchain_updated (new blocks, no new transactions)
-        # For other reasons (wallet_updated, update_tabs, etc.), invalidate cache
-        is_blockchain_only_update = reason in ('blockchain_updated', 'refresh_tabs')
-        can_use_cache = (
-            is_blockchain_only_update and
+        # Check if cache exists and is valid
+        cache_exists = (
             self._cached_history is not None and
             self._cached_domain_hash == domain_hash and
             current_height is not None
         )
         
-        if can_use_cache:
-            # Check if transaction count changed (new transactions = invalidate cache)
-            cached_tx_count = len(self._cached_history) if self._cached_history else 0
-            # Quick check: get current transaction count without full recalculation
-            try:
-                current_tx_count = len(list(wallet.adb.get_history(domain=self.get_domain())))
-                if cached_tx_count == current_tx_count:
-                    # Same number of transactions, safe to update only confirmations
-                    if self._update_confirmations_only(self._full_transactions):
-                        self.logger.info("Using cached history, updated confirmations only")
-                        return
-            except Exception:
-                # If check fails, fall through to full refresh
-                pass
+        # Get current transaction count (quick check)
+        cached_tx_count = len(self._cached_history) if self._cached_history else 0
+        current_tx_count = 0
+        try:
+            current_tx_count = len(list(wallet.adb.get_history(domain=self.get_domain())))
+        except Exception:
+            pass
         
-        # Invalidate cache for full refresh (unless it's a blockchain-only update)
-        if not is_blockchain_only_update:
+        has_new_transactions = current_tx_count > cached_tx_count
+        is_blockchain_only_update = reason in ('blockchain_updated', 'refresh_tabs')
+        
+        # Optimization 1: Try to use cache for blockchain_updated or update_tabs
+        if cache_exists and (is_blockchain_only_update or reason == 'update_tabs'):
+            if not has_new_transactions:
+                # No new transactions, safe to update only confirmations
+                if self._update_confirmations_only(self._full_transactions):
+                    self.logger.info("Using cached history, updated confirmations only")
+                    return
+            else:
+                # New transactions exist, use incremental update
+                if self._update_incremental(current_tx_count - cached_tx_count):
+                    self.logger.info("Using incremental update: confirmations + new transactions")
+                    return
+        
+        # Optimization 2: For update_tabs, only invalidate cache if domain changed or no cache
+        # This prevents unnecessary cache invalidation when only confirmations changed
+        if reason == 'update_tabs' and cache_exists and not has_new_transactions:
+            # Domain unchanged, no new transactions - try to use cache
+            if self._update_confirmations_only(self._full_transactions):
+                self.logger.info("Using cached history for update_tabs, updated confirmations only")
+                return
+        
+        # Invalidate cache only if necessary (domain changed or forced refresh)
+        if reason not in ('blockchain_updated', 'refresh_tabs', 'update_tabs') or domain_hash != self._cached_domain_hash:
             self._cached_history = None
             self._cached_blockchain_height = None
             self._cached_domain_hash = None
