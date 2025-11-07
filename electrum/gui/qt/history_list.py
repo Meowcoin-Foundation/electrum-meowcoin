@@ -27,6 +27,7 @@ import os
 import sys
 import time
 import datetime
+import asyncio
 from datetime import date
 from typing import TYPE_CHECKING, Tuple, Dict, Any, Optional
 import threading
@@ -47,9 +48,10 @@ from electrum.address_synchronizer import TX_HEIGHT_LOCAL, TX_HEIGHT_FUTURE
 from electrum.i18n import _
 from electrum.util import (block_explorer_URL, profiler, TxMinedInfo,
                            OrderedDictWithIndex, timestamp_to_datetime,
-                           Satoshis, Fiat, format_time)
+                           Satoshis, Fiat, format_time, get_asyncio_loop)
 from electrum.logging import get_logger, Logger
 from electrum.simple_config import SimpleConfig
+from electrum.thread_pools import run_in_wallet_thread
 
 from .custom_model import CustomNode, CustomModel
 from .util import (read_QIcon, MONOSPACE_FONT, Buttons, CancelButton, OkButton,
@@ -554,12 +556,22 @@ class HistoryModel(CustomModel, Logger):
         self.set_visibility_of_columns()
         
         # Get ALL transactions but only display a subset (pagination)
-        all_transactions = wallet.get_full_history(
-            self.window.fx,
+        fetch_kwargs = dict(
+            fx=self.window.fx,
             onchain_domain=self.get_domain(),
             include_lightning=self.should_include_lightning_payments(),
             include_fiat=self.should_show_fiat(),
         )
+        try:
+            loop = get_asyncio_loop()
+        except Exception:
+            all_transactions = wallet.get_full_history(**fetch_kwargs)
+        else:
+            future = asyncio.run_coroutine_threadsafe(
+                run_in_wallet_thread(wallet.get_full_history, **fetch_kwargs),
+                loop,
+            )
+            all_transactions = future.result()
         
         # Store full list for pagination and cache
         self._full_transactions = all_transactions

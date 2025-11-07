@@ -29,7 +29,7 @@ from typing import Dict, List, TYPE_CHECKING, Tuple, Set, Callable, Optional
 from collections import defaultdict
 import logging
 
-from aiorpcx import run_in_thread, RPCError
+from aiorpcx import RPCError
 
 from . import util, constants
 from .transaction import Transaction, PartialTransaction
@@ -39,6 +39,7 @@ from .asset import StrictAssetMetadata, get_error_for_asset_name, get_error_for_
 from .logging import Logger
 from .interface import GracefulDisconnect, NetworkTimeout
 from .i18n import _
+from .thread_pools import run_in_wallet_thread
 
 if TYPE_CHECKING:
     from .network import Network
@@ -836,7 +837,7 @@ class Synchronizer(SynchronizerBase):
         else:
             self._stale_histories.pop(addr, asyncio.Future()).cancel()
             # Store received history
-            self.adb.receive_history_callback(addr, hist, tx_fees)
+            await run_in_wallet_thread(self.adb.receive_history_callback, addr, hist, tx_fees)
             # Request transactions we don't have
             await self._request_missing_txs(hist)
 
@@ -879,7 +880,7 @@ class Synchronizer(SynchronizerBase):
             raise SynchronizerFailure(f"received tx does not match expected txid ({tx_hash} != {tx.txid()})")
         tx_height = self.requested_tx.pop(tx_hash)
         remaining = len(self.requested_tx)
-        self.adb.receive_tx_callback(tx_hash, tx, tx_height)
+        await run_in_wallet_thread(self.adb.receive_tx_callback, tx_hash, tx, tx_height)
         # Only log every 100th transaction to avoid spam for large wallets
         if remaining % 100 == 0 or remaining < 10:
             self.logger.info(f"received tx {tx_hash} height: {tx_height} bytes: {len(raw_tx)} (remaining: {remaining})")

@@ -1725,6 +1725,12 @@ def create_and_start_event_loop() -> (
     loop = asyncio.new_event_loop()
     _asyncio_event_loop = loop
 
+    from .thread_pools import ThreadPools, set_thread_pools
+
+    thread_pools = ThreadPools(wallet_workers=20, client_workers=50)
+    thread_pools.setup(loop)
+    set_thread_pools(thread_pools)
+
     def on_exception(loop, context):
         """Suppress spurious messages it appears we cannot control."""
         SUPPRESS_MESSAGE_REGEX = re.compile(
@@ -1741,6 +1747,12 @@ def create_and_start_event_loop() -> (
         finally:
             # clean-up
             global _asyncio_event_loop
+            try:
+                from .thread_pools import shutdown_thread_pools
+
+                shutdown_thread_pools()
+            except Exception:
+                pass
             _asyncio_event_loop = None
 
     loop.set_exception_handler(on_exception)

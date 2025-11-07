@@ -25,7 +25,7 @@ import urllib.parse
 
 import dns.resolver
 import dns.exception
-from aiorpcx import run_in_thread, NetAddress, ignore_after
+from aiorpcx import NetAddress, ignore_after
 
 from . import constants, util
 from . import keystore
@@ -47,6 +47,7 @@ from .util import ignore_exceptions, make_aiohttp_session
 from .util import timestamp_to_datetime, random_shuffled_copy
 from .util import MyEncoder, is_private_netaddress, UnrelatedTransactionException
 from .logging import Logger
+from .thread_pools import run_in_wallet_thread
 from .lntransport import LNTransport, LNResponderTransport, LNTransportBase
 from .lnpeer import Peer, LN_P2P_NETWORK_TIMEOUT
 from .lnaddr import lnencode, LnAddr, lndecode
@@ -468,7 +469,7 @@ class LNWorker(Logger, EventListener, NetworkRetryManager[LNPeerAddr]):
             return [random.choice(fallback_list)]
 
         # last resort: try dns seeds (BOLT-10)
-        return await run_in_thread(self._get_peers_from_dns_seeds)
+        return await run_in_wallet_thread(self._get_peers_from_dns_seeds)
 
     def _get_peers_from_dns_seeds(self) -> Sequence[LNPeerAddr]:
         # NOTE: potentially long blocking call, do not run directly on asyncio event loop.
@@ -634,15 +635,15 @@ class LNGossip(LNWorker):
             for payload in chan_anns:
                 self.channel_db.verify_channel_announcement(payload)
             self.channel_db.add_channel_announcements(chan_anns)
-        await run_in_thread(process_chan_anns)
+        await run_in_wallet_thread(process_chan_anns)
         # node announcements
         def process_node_anns():
             for payload in node_anns:
                 self.channel_db.verify_node_announcement(payload)
             self.channel_db.add_node_announcements(node_anns)
-        await run_in_thread(process_node_anns)
+        await run_in_wallet_thread(process_node_anns)
         # channel updates
-        categorized_chan_upds = await run_in_thread(partial(
+        categorized_chan_upds = await run_in_wallet_thread(partial(
             self.channel_db.add_channel_updates,
             chan_upds,
             max_age=self.max_age))
@@ -1868,7 +1869,7 @@ class LNWallet(LNWorker):
                     for (chan_id, _), part_amounts_msat in sc.config.items():
                         for part_amount_msat in part_amounts_msat:
                             channel = self.channels[chan_id]
-                            route = await run_in_thread(
+                            route = await run_in_wallet_thread(
                                 partial(
                                     self.create_route_for_payment,
                                     amount_msat=part_amount_msat,

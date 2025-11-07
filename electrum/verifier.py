@@ -36,6 +36,7 @@ from .bitcoin import hash_decode, hash_encode, base_decode
 from .transaction import Transaction, TxOutpoint
 from .blockchain import hash_header
 from .interface import GracefulDisconnect, RequestCorrupted
+from .thread_pools import run_in_wallet_thread
 from . import constants
 
 if TYPE_CHECKING:
@@ -775,7 +776,9 @@ class SPV(NetworkJobOnDefaultServer):
         async with self.network.bhi_lock:
             header = self.network.blockchain().read_header(tx_height)
         try:
-            verify_tx_is_in_block(tx_hash, merkle_branch, pos, header, tx_height)
+            await run_in_wallet_thread(
+                verify_tx_is_in_block, tx_hash, merkle_branch, pos, header, tx_height
+            )
         except MissingBlockHeader as e:
             # Header not available yet - this shouldn't happen as _maybe_defer should catch it
             # but handle it gracefully anyway

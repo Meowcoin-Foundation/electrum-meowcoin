@@ -48,7 +48,7 @@ import threading
 import enum
 import asyncio
 
-from aiorpcx import timeout_after, TaskTimeout, ignore_after, run_in_thread
+from aiorpcx import timeout_after, TaskTimeout, ignore_after
 
 from .atomic_swap import RESERVED_MESSAGE
 from .i18n import _
@@ -86,6 +86,7 @@ from .contacts import Contacts
 from .interface import NetworkException
 from .mnemonic import Mnemonic
 from .logging import get_logger, Logger
+from .thread_pools import run_in_wallet_thread
 from .lnworker import LNWallet
 from .paymentrequest import PaymentRequest
 from .util import read_json_file, write_json_file, UserFacingException, FileImportFailed
@@ -419,7 +420,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
             await asyncio.sleep(0.1)
             # note: we only generate new HD addresses if the existing ones
             #       have history that are mined and SPV-verified.
-            await run_in_thread(self.synchronize)
+            await run_in_wallet_thread(self.synchronize)
 
     def save_db(self):
         if self.db.storage:
@@ -540,7 +541,7 @@ class Abstract_Wallet(ABC, Logger, EventListener):
     async def on_event_adb_set_up_to_date(self, adb):
         if self.adb != adb:
             return
-        num_new_addrs = await run_in_thread(self.synchronize)
+        num_new_addrs = await run_in_wallet_thread(self.synchronize)
         
         # CRITICAL FIX: Also check blockchain sync status, not just address/tx sync
         # Address sync can complete while blockchain headers are still catching up

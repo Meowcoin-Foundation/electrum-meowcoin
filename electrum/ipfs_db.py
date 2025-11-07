@@ -12,7 +12,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Set, Dict, Optional
 
 from aiohttp import ClientResponse
-from aiorpcx import run_in_thread
 from multiformats import CID
 from ipfs_car_decoder import stream_bytes, FileByteStream
 
