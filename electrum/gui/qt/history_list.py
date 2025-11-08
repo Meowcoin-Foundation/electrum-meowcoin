@@ -640,6 +640,45 @@ class HistoryModel(CustomModel, Logger):
                 self.tx_status_cache[(txid, asset)] = self.window.wallet.get_tx_status(txid, tx_mined_info)
         self._update_pagination_widgets()
 
+    @staticmethod
+    def _prepare_display_data_worker(all_transactions: OrderedDictWithIndex, displayed_count: int):
+        items = list(all_transactions.items())
+        if not items:
+            return []
+        start_index = max(0, len(items) - displayed_count)
+        balance = defaultdict(int)
+        selected = []
+        for key, tx_item in items[start_index:]:
+            asset = tx_item.get('asset') or None
+            value_obj = tx_item.get('value')
+            value = 0
+            if isinstance(value_obj, Satoshis):
+                value = value_obj.value
+            elif value_obj is not None:
+                try:
+                    value = value_obj.value
+                except AttributeError:
+                    pass
+            balance[asset] += value
+            tx_item['balance'] = Satoshis(balance[asset])
+            selected.append((key, tx_item))
+        return selected
+
+    def _prepare_display_data(self, all_transactions: OrderedDictWithIndex):
+        try:
+            loop = get_asyncio_loop()
+        except Exception:
+            return self._prepare_display_data_worker(all_transactions, self._displayed_count)
+        future = asyncio.run_coroutine_threadsafe(
+            run_in_wallet_thread(
+                HistoryModel._prepare_display_data_worker,
+                all_transactions,
+                self._displayed_count,
+            ),
+            loop,
+        )
+        return future.result()
+
     def _clear_transactions_view(self):
         child_count = self._root.childCount()
         if child_count:
