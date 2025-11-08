@@ -812,7 +812,8 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             tx_item = self.tx_item_from_proxy_row(proxy_row)
             date = tx_item['date']
             if date:
-                in_interval = self.start_date <= date <= self.end_date
+                end_exclusive = self.end_date + datetime.timedelta(days=1)
+                in_interval = self.start_date <= date < end_exclusive
                 if not in_interval:
                     return True
             return False
