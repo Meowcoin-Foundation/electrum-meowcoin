@@ -376,46 +376,60 @@ class HistoryModel(CustomModel, Logger):
 
     def _update_incremental(self, new_tx_count: int):
         """Incremental update: update confirmations + add only new transactions"""
+        del new_tx_count
         if not self._cached_history:
             return False
-        
+
         wallet = self.window.wallet
         network = wallet.network
         if not network:
             return False
-        
+
         current_height = network.get_local_height()
-        
+
         # First, update confirmations for existing cached transactions
         updated_conf_count = 0
         for (txid, asset), tx_item in self._cached_history.items():
             tx_mined_status = wallet.adb.get_tx_height(txid)
             old_height = tx_item.get('height', 0)
             old_conf = tx_item.get('confirmations', 0)
-            
+
             if tx_mined_status.height != old_height or tx_mined_status.conf != old_conf:
                 tx_item['height'] = tx_mined_status.height
                 tx_item['confirmations'] = tx_mined_status.conf
                 tx_item['timestamp'] = tx_mined_status.timestamp
                 tx_item['date'] = timestamp_to_datetime(tx_mined_status.timestamp)
                 updated_conf_count += 1
-        
+
         # Get only the NEW transactions (those not in cache)
         # We'll get full history but only process new ones
-        all_transactions = wallet.get_full_history(
-            self.window.fx,
-            onchain_domain=self.get_domain(),
-            include_lightning=self.should_include_lightning_payments(),
-            include_fiat=self.should_show_fiat(),
-        )
-        
+        try:
+            loop = get_asyncio_loop()
+        except Exception:
+            all_transactions = wallet.get_full_history(
+                self.window.fx,
+                onchain_domain=self.get_domain(),
+                include_lightning=self.should_include_lightning_payments(),
+                include_fiat=self.should_show_fiat(),
+            )
+        else:
+            future = asyncio.run_coroutine_threadsafe(
+                run_in_wallet_thread(
+                    wallet.get_full_history,
+                    self.window.fx,
+                    onchain_domain=self.get_domain(),
+                    include_lightning=self.should_include_lightning_payments(),
+                    include_fiat=self.should_show_fiat(),
+                ),
+                loop,
+            )
+            all_transactions = future.result()
+
         # Add new transactions to cache
-        new_tx_added = 0
         for key, tx_item in all_transactions.items():
             if key not in self._cached_history:
                 self._cached_history[key] = tx_item
-                new_tx_added += 1
-        
+
         # Update full_transactions with new data
         self._full_transactions = all_transactions
 
@@ -424,20 +438,21 @@ class HistoryModel(CustomModel, Logger):
             self._clear_transactions_view()
             return False
 
-        # Update displayed transactions: update confirmations + add new ones
-        # Rebuild displayed list to include new transactions at the top
-        displayed_transactions = self._select_display_subset(all_transactions)
-        for key, tx_item in displayed_transactions.items():
+        # Prepare display data outside GUI thread
+        display_items = self._prepare_display_data(all_transactions)
+        displayed_transactions = OrderedDictWithIndex()
+        for key, tx_item in display_items:
             cached_item = self._cached_history.get(key)
             if cached_item:
                 tx_item['height'] = cached_item['height']
                 tx_item['confirmations'] = cached_item['confirmations']
                 tx_item['timestamp'] = cached_item['timestamp']
                 tx_item['date'] = cached_item['date']
+            displayed_transactions[key] = tx_item
 
         # Update blockchain height cache
         self._cached_blockchain_height = current_height
-        
+
         # If displayed transactions changed, rebuild the view
         if displayed_transactions != self.transactions:
             # Rebuild view with updated data
@@ -447,7 +462,7 @@ class HistoryModel(CustomModel, Logger):
                 self.transactions.clear()
                 self._root = HistoryNode(self, None)
                 self.endRemoveRows()
-            
+
             parents = {}
             for tx_item in displayed_transactions.values():
                 node = HistoryNode(self, tx_item)
@@ -455,27 +470,19 @@ class HistoryModel(CustomModel, Logger):
                 for child_item in tx_item.get('children', []):
                     child_node = HistoryNode(self, child_item)
                     node.addChild(child_node)
-            
-            # Compute balance
-            balance = defaultdict(int)
-            for node in self._root._children:
-                asset = node._data.get('asset', None)
-                sats = node._data['value']
-                balance[asset] += sats.value
-                node._data['balance'] = Satoshis(balance[asset])
-            
+
             new_length = self._root.childCount()
             self.beginInsertRows(QModelIndex(), 0, new_length-1)
             self.transactions = displayed_transactions
             self.endInsertRows()
-            
+
             # Update status cache
             self.tx_status_cache.clear()
             for (txid, asset), tx_item in self.transactions.items():
                 if not tx_item.get('lightning', False):
                     tx_mined_info = HistoryModel._tx_mined_info_from_tx_item(tx_item)
                     self.tx_status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
-            
+
             self.view.filter()
         else:
             # Only confirmations changed, just notify view
@@ -483,7 +490,7 @@ class HistoryModel(CustomModel, Logger):
                 topLeft = self.createIndex(0, 0)
                 bottomRight = self.createIndex(len(self.transactions) - 1, len(HistoryColumns) - 1)
                 self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
-            
+
         self._update_pagination_widgets()
 
         return True
@@ -569,13 +576,10 @@ class HistoryModel(CustomModel, Logger):
                 loop,
             )
             all_transactions = future.result()
-        
+
         # Store full list for pagination and cache
         self._full_transactions = all_transactions
-        # Create cached history copy (OrderedDictWithIndex doesn't accept constructor args)
-        self._cached_history = OrderedDictWithIndex()
-        for key, value in all_transactions.items():
-            self._cached_history[key] = value
+        self._cached_history = all_transactions
         self._cached_blockchain_height = current_height
         self._cached_domain_hash = domain_hash
         total_count = len(all_transactions)
@@ -586,19 +590,16 @@ class HistoryModel(CustomModel, Logger):
             return
 
         # Only show the most recent _displayed_count transactions
-        transactions = self._select_display_subset(all_transactions)
-        
+        display_items = self._prepare_display_data(all_transactions)
+        transactions = OrderedDictWithIndex()
+        for key, tx_item in display_items:
+            transactions[key] = tx_item
+
         self.logger.debug(f"Displaying {len(transactions)} of {total_count} total transactions")
-        
+
         if transactions == self.transactions:
             return
 
-        #for transaction in transactions.values():
-        #    print(transaction['txid'])
-        #    print(transaction['asset'])
-        #    print(transaction['bc_value'])
-        #    print('==========')
-        
         old_length = self._root.childCount()
         if old_length != 0:
             self.beginRemoveRows(QModelIndex(), 0, old_length)
@@ -613,14 +614,6 @@ class HistoryModel(CustomModel, Logger):
                 child_node = HistoryNode(self, child_item)
                 # add child to parent
                 node.addChild(child_node)
-
-        # compute balance once all children have beed added
-        balance = defaultdict(int)
-        for node in self._root._children:
-            asset = node._data.get('asset', None)
-            sats = node._data['value']
-            balance[asset] += sats.value
-            node._data['balance'] = Satoshis(balance[asset])
 
         new_length = self._root.childCount()
         self.beginInsertRows(QModelIndex(), 0, new_length-1)
@@ -646,16 +639,6 @@ class HistoryModel(CustomModel, Logger):
                 tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
                 self.tx_status_cache[(txid, asset)] = self.window.wallet.get_tx_status(txid, tx_mined_info)
         self._update_pagination_widgets()
-
-    def _select_display_subset(self, all_transactions: OrderedDictWithIndex) -> OrderedDictWithIndex:
-        selected = OrderedDictWithIndex()
-        items = list(all_transactions.items())
-        if not items:
-            return selected
-        start_index = max(0, len(items) - self._displayed_count)
-        for key, tx_item in items[start_index:]:
-            selected[key] = tx_item
-        return selected
 
     def _clear_transactions_view(self):
         child_count = self._root.childCount()
