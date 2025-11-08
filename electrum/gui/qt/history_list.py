@@ -371,7 +371,6 @@ class HistoryModel(CustomModel, Logger):
             topLeft = self.createIndex(0, 0)
             bottomRight = self.createIndex(len(self.transactions) - 1, len(HistoryColumns) - 1)
             self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
-            self.logger.info(f"Updated confirmations for {updated_count} transactions (cached)")
         
         return True
 
@@ -421,7 +420,7 @@ class HistoryModel(CustomModel, Logger):
         self._full_transactions = all_transactions
 
         if not wallet.is_up_to_date():
-            self.logger.info("Wallet not up to date; deferring incremental display")
+            self.logger.debug("Wallet not up to date; deferring incremental display")
             self._clear_transactions_view()
             return False
 
@@ -478,15 +477,13 @@ class HistoryModel(CustomModel, Logger):
                     self.tx_status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
             
             self.view.filter()
-            self.logger.info(f"Incremental update: {updated_conf_count} confirmations updated, {new_tx_added} new transactions added")
         else:
             # Only confirmations changed, just notify view
             if updated_conf_count > 0:
                 topLeft = self.createIndex(0, 0)
                 bottomRight = self.createIndex(len(self.transactions) - 1, len(HistoryColumns) - 1)
                 self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
-                self.logger.info(f"Incremental update: {updated_conf_count} confirmations updated, {new_tx_added} new transactions added")
-        
+            
         self._update_pagination_widgets()
 
         return True
@@ -527,12 +524,10 @@ class HistoryModel(CustomModel, Logger):
             if not has_new_transactions:
                 # No new transactions, safe to update only confirmations
                 if self._update_confirmations_only(self._full_transactions):
-                    self.logger.info("Using cached history, updated confirmations only")
                     return
             else:
                 # New transactions exist, use incremental update
                 if self._update_incremental(current_tx_count - cached_tx_count):
-                    self.logger.info("Using incremental update: confirmations + new transactions")
                     return
         
         # Optimization 2: For update_tabs, only invalidate cache if domain changed or no cache
@@ -540,7 +535,6 @@ class HistoryModel(CustomModel, Logger):
         if reason == 'update_tabs' and cache_exists and not has_new_transactions:
             # Domain unchanged, no new transactions - try to use cache
             if self._update_confirmations_only(self._full_transactions):
-                self.logger.info("Using cached history for update_tabs, updated confirmations only")
                 return
         
         # Invalidate cache only if necessary (domain changed or forced refresh)
@@ -587,14 +581,14 @@ class HistoryModel(CustomModel, Logger):
         total_count = len(all_transactions)
 
         if not wallet.is_up_to_date():
-            self.logger.info("Wallet not up to date; deferring history display")
+            self.logger.debug("Wallet not up to date; deferring history display")
             self._clear_transactions_view()
             return
 
         # Only show the most recent _displayed_count transactions
         transactions = self._select_display_subset(all_transactions)
         
-        self.logger.info(f"Displaying {len(transactions)} of {total_count} total transactions")
+        self.logger.debug(f"Displaying {len(transactions)} of {total_count} total transactions")
         
         if transactions == self.transactions:
             return
