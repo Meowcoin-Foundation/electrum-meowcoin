@@ -419,22 +419,23 @@ class HistoryModel(CustomModel, Logger):
         
         # Update full_transactions with new data
         self._full_transactions = all_transactions
-        
+
+        if not wallet.is_up_to_date():
+            self.logger.info("Wallet not up to date; deferring incremental display")
+            self._clear_transactions_view()
+            return False
+
         # Update displayed transactions: update confirmations + add new ones
         # Rebuild displayed list to include new transactions at the top
-        displayed_transactions = OrderedDictWithIndex()
-        for idx, (key, tx_item) in enumerate(all_transactions.items()):
-            if idx >= self._displayed_count:
-                break
-            displayed_transactions[key] = tx_item
-            # Update confirmations for displayed items from cache
-            if key in self._cached_history:
-                cached_item = self._cached_history[key]
+        displayed_transactions = self._select_display_subset(all_transactions)
+        for key, tx_item in displayed_transactions.items():
+            cached_item = self._cached_history.get(key)
+            if cached_item:
                 tx_item['height'] = cached_item['height']
                 tx_item['confirmations'] = cached_item['confirmations']
                 tx_item['timestamp'] = cached_item['timestamp']
                 tx_item['date'] = cached_item['date']
-        
+
         # Update blockchain height cache
         self._cached_blockchain_height = current_height
         
@@ -584,13 +585,14 @@ class HistoryModel(CustomModel, Logger):
         self._cached_blockchain_height = current_height
         self._cached_domain_hash = domain_hash
         total_count = len(all_transactions)
-        
+
+        if not wallet.is_up_to_date():
+            self.logger.info("Wallet not up to date; deferring history display")
+            self._clear_transactions_view()
+            return
+
         # Only show the most recent _displayed_count transactions
-        transactions = OrderedDictWithIndex()
-        for idx, (key, tx_item) in enumerate(all_transactions.items()):
-            if idx >= self._displayed_count:
-                break
-            transactions[key] = tx_item
+        transactions = self._select_display_subset(all_transactions)
         
         self.logger.info(f"Displaying {len(transactions)} of {total_count} total transactions")
         
@@ -649,6 +651,26 @@ class HistoryModel(CustomModel, Logger):
             if not tx_item.get('lightning', False):
                 tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
                 self.tx_status_cache[(txid, asset)] = self.window.wallet.get_tx_status(txid, tx_mined_info)
+        self._update_pagination_widgets()
+
+    def _select_display_subset(self, all_transactions: OrderedDictWithIndex) -> OrderedDictWithIndex:
+        selected = OrderedDictWithIndex()
+        items = list(all_transactions.items())
+        if not items:
+            return selected
+        start_index = max(0, len(items) - self._displayed_count)
+        for key, tx_item in items[start_index:]:
+            selected[key] = tx_item
+        return selected
+
+    def _clear_transactions_view(self):
+        child_count = self._root.childCount()
+        if child_count:
+            self.beginRemoveRows(QModelIndex(), 0, child_count - 1)
+            self.transactions.clear()
+            self._root = HistoryNode(self, None)
+            self.endRemoveRows()
+        self.tx_status_cache.clear()
         self._update_pagination_widgets()
 
     def _update_pagination_widgets(self):
