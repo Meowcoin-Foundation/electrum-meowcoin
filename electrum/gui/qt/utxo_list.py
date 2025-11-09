@@ -82,23 +82,51 @@ class UTXOList(MyTreeView):
         self.setModel(self.std_model)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setSortingEnabled(True)
+        
+        # Pagination support for large wallets
+        self._full_utxos = []  # All UTXOs
+        self._displayed_count = 500  # Start with 500
+        self._page_size = 500  # Load 500 at a time
+        self._has_loaded_once = False  # Track if we've loaded UTXOs at least once
 
     def create_toolbar(self, config):
         toolbar, menu = self.create_toolbar_with_menu('')
         self.num_coins_label = toolbar.itemAt(0).widget()
         menu.addAction(_('Coin control'), lambda: self.add_selection_to_coincontrol())
+        
+        # Add "Load More" button for pagination
+        self.load_more_button = EnterButton(_('Load More'), self.load_more)
+        self.load_more_button.setVisible(False)  # Hidden by default
+        toolbar.addWidget(self.load_more_button)
+        
         return toolbar
 
     @profiler(min_threshold=0.05)
-    def update(self):
+    def update(self, force=False):
         # not calling maybe_defer_update() as it interferes with coincontrol status bar
-        utxos = self.wallet.get_utxos()
-        utxos.sort(key=lambda x: x.block_height, reverse=True)
-        self._maybe_reset_coincontrol(utxos)
+        
+        # Skip update if not loaded once and not forced (lazy loading)
+        if not force and not self._has_loaded_once:
+            return
+        
+        self._has_loaded_once = True
+        
+        # Get ALL UTXOs and store them
+        self._full_utxos = self.wallet.get_utxos()
+        self._full_utxos.sort(key=lambda x: x.block_height, reverse=True)
+        
+        total_utxos = len(self._full_utxos)
+        
+        # Only display up to _displayed_count UTXOs
+        utxos_to_display = self._full_utxos[:self._displayed_count]
+        
+        self._maybe_reset_coincontrol(self._full_utxos)
         self._utxo_dict = {}
         self.model().clear()
         self.update_headers(self.__class__.headers)
-        for idx, utxo in enumerate(utxos):
+        
+        # Only process the UTXOs we're displaying
+        for idx, utxo in enumerate(utxos_to_display):
             name = utxo.prevout.to_str()
             self._utxo_dict[name] = utxo
             labels = [""] * len(self.Columns)
@@ -121,9 +149,26 @@ class UTXOList(MyTreeView):
             utxo_item[self.Columns.ASSET].setFont(QFont(MONOSPACE_FONT))
             self.model().insertRow(idx, utxo_item)
             self.refresh_row(name, idx)
+        
         self.filter()
         self.update_coincontrol_bar()
-        self.num_coins_label.setText(_('{} unspent transaction outputs').format(len(utxos)))
+        
+        # Update status label and Load More button
+        displayed = len(utxos_to_display)
+        if total_utxos > displayed:
+            self.num_coins_label.setText(_('Showing {} of {} coins (UTXOs)').format(displayed, total_utxos))
+            self.load_more_button.setVisible(True)
+        else:
+            if total_utxos > 500:
+                self.num_coins_label.setText(_('Showing all {} coins (UTXOs)').format(total_utxos))
+            else:
+                self.num_coins_label.setText(_('{} unspent transaction outputs').format(total_utxos))
+            self.load_more_button.setVisible(False)
+    
+    def load_more(self):
+        """Load more UTXOs (next page)"""
+        self._displayed_count += self._page_size
+        self.update(force=True)
 
     def update_coincontrol_bar(self):
         # update coincontrol status bar

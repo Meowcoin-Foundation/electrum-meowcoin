@@ -24,11 +24,12 @@
 # SOFTWARE.
 import asyncio
 import hashlib
+import time
 from typing import Dict, List, TYPE_CHECKING, Tuple, Set, Callable, Optional
 from collections import defaultdict
 import logging
 
-from aiorpcx import run_in_thread, RPCError
+from aiorpcx import RPCError
 
 from . import util, constants
 from .transaction import Transaction, PartialTransaction
@@ -38,6 +39,7 @@ from .asset import StrictAssetMetadata, get_error_for_asset_name, get_error_for_
 from .logging import Logger
 from .interface import GracefulDisconnect, NetworkTimeout
 from .i18n import _
+from .thread_pools import run_in_wallet_thread
 
 if TYPE_CHECKING:
     from .network import Network
@@ -813,7 +815,10 @@ class Synchronizer(SynchronizerBase):
         async with self._network_request_semaphore:
             result = await self.interface.get_history_for_scripthash(h)
         self._requests_answered += 1
-        self.logger.info(f"receiving history {addr} {len(result)}")
+        if len(result) > 100:
+            self.logger.info(f"receiving history {addr}: {len(result)} transactions (large history)")
+        else:
+            self.logger.info(f"receiving history {addr}: {len(result)} transactions")
         hist = list(map(lambda item: (item['tx_hash'], item['height']), result))
         # tx_fees
         tx_fees = [(item['tx_hash'], item.get('fee')) for item in result]
@@ -832,7 +837,7 @@ class Synchronizer(SynchronizerBase):
         else:
             self._stale_histories.pop(addr, asyncio.Future()).cancel()
             # Store received history
-            self.adb.receive_history_callback(addr, hist, tx_fees)
+            await run_in_wallet_thread(self.adb.receive_history_callback, addr, hist, tx_fees)
             # Request transactions we don't have
             await self._request_missing_txs(hist)
 
@@ -874,8 +879,11 @@ class Synchronizer(SynchronizerBase):
         if tx_hash != tx.txid():
             raise SynchronizerFailure(f"received tx does not match expected txid ({tx_hash} != {tx.txid()})")
         tx_height = self.requested_tx.pop(tx_hash)
-        self.adb.receive_tx_callback(tx_hash, tx, tx_height)
-        self.logger.info(f"received tx {tx_hash} height: {tx_height} bytes: {len(raw_tx)}")
+        remaining = len(self.requested_tx)
+        await run_in_wallet_thread(self.adb.receive_tx_callback, tx_hash, tx, tx_height)
+        # Only log every 100th transaction to avoid spam for large wallets
+        if remaining % 100 == 0 or remaining < 10:
+            self.logger.info(f"received tx {tx_hash} height: {tx_height} bytes: {len(raw_tx)} (remaining: {remaining})")
 
     async def main(self):
         self.adb.up_to_date_changed()
@@ -922,6 +930,8 @@ class Synchronizer(SynchronizerBase):
         # main loop
         self._init_done = True
         prev_uptodate = False
+        last_log_time = 0
+        log_interval = 5.0  # Log progress every 5 seconds
         while True:
             await asyncio.sleep(0.1)
             for addr in self._adding_addrs.copy(): # copy set to ensure iterator stability
@@ -941,6 +951,24 @@ class Synchronizer(SynchronizerBase):
             for asset in self._adding_qualifier_associations.copy():
                 await self._add_associations_for_qualifier(asset)
             up_to_date = self.adb.is_up_to_date()
+            
+            # Periodic progress logging
+            current_time = time.time()
+            if current_time - last_log_time >= log_interval:
+                sent, answered = self.num_requests_sent_and_answered()
+                status_parts = []
+                if self._adding_addrs or self.requested_addrs or self._handling_addr_statuses:
+                    status_parts.append(f"addrs: adding={len(self._adding_addrs)} requested={len(self.requested_addrs)} handling={len(self._handling_addr_statuses)}")
+                if self.requested_histories:
+                    status_parts.append(f"histories: requested={len(self.requested_histories)}")
+                if self.requested_tx:
+                    status_parts.append(f"tx: requested={len(self.requested_tx)}")
+                if self._stale_histories:
+                    status_parts.append(f"stale_histories={len(self._stale_histories)}")
+                status_str = ", ".join(status_parts) if status_parts else "idle"
+                self.logger.info(f"sync progress: {answered}/{sent} requests, {status_str}, up_to_date={up_to_date}")
+                last_log_time = current_time
+            
             # see if status changed
             if (up_to_date != prev_uptodate
                     or up_to_date and (self._processed_some_notifications or self._processed_some_asset_notifications or

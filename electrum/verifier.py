@@ -23,6 +23,7 @@
 
 import asyncio
 import re
+import time
 from typing import Sequence, Optional, TYPE_CHECKING, Tuple
 
 import aiorpcx
@@ -35,6 +36,7 @@ from .bitcoin import hash_decode, hash_encode, base_decode
 from .transaction import Transaction, TxOutpoint
 from .blockchain import hash_header
 from .interface import GracefulDisconnect, RequestCorrupted
+from .thread_pools import run_in_wallet_thread
 from . import constants
 
 if TYPE_CHECKING:
@@ -51,6 +53,12 @@ class InnerNodeOfSpvProofIsValidTx(MerkleVerificationFailure): pass
 class SPV(NetworkJobOnDefaultServer):
     """ Simple Payment Verification """
 
+    MERKLE_LOG_INTERVAL = 500_000
+    HEADER_CHUNK_LOG_INTERVAL = 500_000
+    VERIFIED_LOG_INTERVAL = 500_000
+    HEADER_READY_LOG_INTERVAL = 500_000
+    DEFERRAL_LOG_INTERVAL = 500_000
+
     def __init__(self, network: 'Network', wallet: 'AddressSynchronizer'):
         self.wallet = wallet
         NetworkJobOnDefaultServer.__init__(self, network)
@@ -60,6 +68,12 @@ class SPV(NetworkJobOnDefaultServer):
         self.merkle_roots = {}  # txid -> merkle root (once it has been verified)
         self.requested_merkle = set()  # txid set of pending requests
         self.verifying = set()
+        self._deferred_tx_hashes = {}  # tx_hash -> (tx_height, retry_count, last_attempt_time) - txs waiting for headers
+        self._merkle_requests = 0
+        self._header_chunk_requests = 0
+        self._verified_count = 0
+        self._header_ready_count = 0
+        self._deferral_count = 0
 
     async def _run_tasks(self, *, taskgroup):
         await super()._run_tasks(taskgroup=taskgroup)
@@ -74,7 +88,13 @@ class SPV(NetworkJobOnDefaultServer):
         while True:
             await self._maybe_undo_verifications()
             await self._request_proofs()
-            await asyncio.sleep(0.1)
+            
+            # Adaptive sleep: if we have deferred txs waiting for headers,
+            # sleep longer to avoid spamming requests
+            if self._deferred_tx_hashes:
+                await asyncio.sleep(1.0)  # 1 second when waiting for headers
+            else:
+                await asyncio.sleep(0.1)  # 0.1 seconds when active
 
     async def wait_and_verify_transitory_transactions(self, txs: Sequence[Tuple[str, int]]):
         txids_needed_to_verify = set()
@@ -108,17 +128,82 @@ class SPV(NetworkJobOnDefaultServer):
             return True
         if tx_hash in self.merkle_roots and for_tx:
             return True
+        
+        # Implement exponential backoff for deferred transactions
+        if tx_hash in self._deferred_tx_hashes:
+            _, retry_count, last_attempt = self._deferred_tx_hashes[tx_hash]
+            current_time = time.time()
+            # Exponential backoff: 1s, 2s, 4s, 8s, max 10s between retries
+            backoff_time = min(2 ** min(retry_count, 4), 10.0)
+            if current_time - last_attempt < backoff_time:
+                return True  # Still in backoff period
+        
         # or before headers are available
         if not (0 < tx_height <= local_height):
+            # Track deferred tx for backoff logic
+            current_time = time.time()
+            if tx_hash in self._deferred_tx_hashes:
+                _, retry_count, _ = self._deferred_tx_hashes[tx_hash]
+                self._deferred_tx_hashes[tx_hash] = (tx_height, retry_count + 1, current_time)
+            else:
+                self._deferred_tx_hashes[tx_hash] = (tx_height, 0, current_time)
+                self._deferral_count += 1
+                if (
+                    self._deferral_count == 1
+                    or self._deferral_count % self.DEFERRAL_LOG_INTERVAL == 0
+                ):
+                    self.logger.info(
+                        f'deferred {self._deferral_count} transactions so far (latest tx {tx_hash[:16]}..., height {tx_height} > local {local_height})'
+                    )
             return True
         # if it's in the checkpoint region, we still might not have the header
         header = self.blockchain.read_header(tx_height)
         if header is None:
-            if tx_height < constants.net.max_checkpoint():
-                # FIXME these requests are not counted (self._requests_sent += 1)
-                await self.taskgroup.spawn(self.interface.request_chunk(tx_height, None, can_return_early=True))
+            # Request chunk if needed, with backoff
+            current_time = time.time()
+            if tx_hash in self._deferred_tx_hashes:
+                _, retry_count, _ = self._deferred_tx_hashes[tx_hash]
+                self._deferred_tx_hashes[tx_hash] = (tx_height, retry_count + 1, current_time)
+                # Only request chunk on first attempt and every 10th retry
+                if retry_count % 10 == 0:
+                    if tx_height < constants.net.max_checkpoint():
+                        # FIXME these requests are not counted (self._requests_sent += 1)
+                        await self.taskgroup.spawn(self.interface.request_chunk(tx_height, None, can_return_early=True))
+                        self._header_chunk_requests += 1
+                        if (
+                            self._header_chunk_requests == 1
+                            or self._header_chunk_requests % self.HEADER_CHUNK_LOG_INTERVAL == 0
+                        ):
+                            self.logger.info(
+                                f'requested {self._header_chunk_requests} header chunks so far (latest height {tx_height})'
+                            )
+            else:
+                self._deferred_tx_hashes[tx_hash] = (tx_height, 0, current_time)
+                if tx_height < constants.net.max_checkpoint():
+                    # FIXME these requests are not counted (self._requests_sent += 1)
+                    await self.taskgroup.spawn(self.interface.request_chunk(tx_height, None, can_return_early=True))
+                    self._header_chunk_requests += 1
+                    if (
+                        self._header_chunk_requests == 1
+                        or self._header_chunk_requests % self.HEADER_CHUNK_LOG_INTERVAL == 0
+                    ):
+                        self.logger.info(
+                            f'requested {self._header_chunk_requests} header chunks so far (latest height {tx_height})'
+                        )
             return True
-        # request now
+        # Header is now available - remove from deferred and request now
+        if tx_hash in self._deferred_tx_hashes:
+            _, retry_count, _ = self._deferred_tx_hashes[tx_hash]
+            if retry_count > 0:
+                self._header_ready_count += 1
+                if (
+                    self._header_ready_count == 1
+                    or self._header_ready_count % self.HEADER_READY_LOG_INTERVAL == 0
+                ):
+                    self.logger.info(
+                        f'headers became available for {self._header_ready_count} deferred transactions so far (latest tx {tx_hash[:16]}..., height {tx_height}, retries {retry_count})'
+                    )
+        self._deferred_tx_hashes.pop(tx_hash, None)
         if add_to_requested_set:
             self.requested_merkle.add(tx_hash)
         return False
@@ -642,6 +727,11 @@ class SPV(NetworkJobOnDefaultServer):
             self.logger.info(f'tx {tx_hash} not at height {tx_height}')
             self.wallet.remove_unverified_tx(tx_hash, tx_height)
             return
+        except MissingBlockHeader:
+            # Header not available yet - will retry later when header arrives
+            # Remove from requested_merkle to allow retry (backoff logic will handle timing)
+            self.requested_merkle.discard(tx_hash)
+            return
         
         header_hash = hash_header(header)
         tx_info = TxMinedInfo(height=tx_height,
@@ -654,14 +744,26 @@ class SPV(NetworkJobOnDefaultServer):
     async def _request_and_verify_single_proof(self, tx_hash, tx_height, *, quick_return=False):
         if quick_return and (tx_hash in self.merkle_roots or self.wallet.db.get_verified_tx(tx_hash)):
             return
-        self.logger.info(f'requesting merkle {tx_hash}')
+        self._merkle_requests += 1
+        if (
+            self._merkle_requests == 1
+            or self._merkle_requests % self.MERKLE_LOG_INTERVAL == 0
+        ):
+            self.logger.info(
+                f'requested {self._merkle_requests} merkle proofs so far (latest tx {tx_hash[:16]}...)'
+            )
+        
+        merkle = None
         try:
             self._requests_sent += 1
             async with self._network_request_semaphore:
                 merkle = await self.interface.get_merkle_for_transaction(tx_hash, tx_height)
-        finally:
-            self.requested_merkle.discard(tx_hash)
             self._requests_answered += 1
+        except Exception as e:
+            # Request failed - keep in requested_merkle to avoid immediate retry
+            self._requests_answered += 1
+            raise
+        
         # Verify the hash of the server-provided merkle branch to a
         # transaction matches the merkle root of its block
         if tx_height != merkle.get('block_height'):
@@ -674,16 +776,42 @@ class SPV(NetworkJobOnDefaultServer):
         async with self.network.bhi_lock:
             header = self.network.blockchain().read_header(tx_height)
         try:
-            verify_tx_is_in_block(tx_hash, merkle_branch, pos, header, tx_height)
+            await run_in_wallet_thread(
+                verify_tx_is_in_block, tx_hash, merkle_branch, pos, header, tx_height
+            )
+        except MissingBlockHeader as e:
+            # Header not available yet - this shouldn't happen as _maybe_defer should catch it
+            # but handle it gracefully anyway
+            current_time = time.time()
+            if tx_hash in self._deferred_tx_hashes:
+                _, retry_count, _ = self._deferred_tx_hashes[tx_hash]
+                self._deferred_tx_hashes[tx_hash] = (tx_height, retry_count + 1, current_time)
+            else:
+                self._deferred_tx_hashes[tx_hash] = (tx_height, 0, current_time)
+                self.logger.info(f'header {tx_height} not available yet for tx {tx_hash[:16]}... (will retry when header arrives)')
+            # Don't discard from requested_merkle yet - let backoff handle retry
+            raise  # Propagate to caller
         except MerkleVerificationFailure as e:
+            # Other verification failures (not missing header)
+            self.requested_merkle.discard(tx_hash)
             if self.network.config.NETWORK_SKIPMERKLECHECK:
                 self.logger.info(f"skipping merkle proof check {tx_hash}")
             else:
                 self.logger.info(repr(e))
                 raise GracefulDisconnect(e) from e
-        # we passed all the tests
+        
+        # Successfully verified - remove from both sets
+        self.requested_merkle.discard(tx_hash)
+        self._deferred_tx_hashes.pop(tx_hash, None)
         self.merkle_roots[tx_hash] = header.get('merkle_root')
-        self.logger.info(f"verified {tx_hash}")    
+        self._verified_count += 1
+        if (
+            self._verified_count == 1
+            or self._verified_count % self.VERIFIED_LOG_INTERVAL == 0
+        ):
+            self.logger.info(
+                f'verified {self._verified_count} merkle proofs so far (latest tx {tx_hash[:16]}...)'
+            )    
 
         return pos, header
         

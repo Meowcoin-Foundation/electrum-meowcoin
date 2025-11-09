@@ -874,7 +874,7 @@ class SimpleConfig(Logger):
     NETWORK_OFFLINE = ConfigVar('offline', default=False, type_=bool)
     NETWORK_SKIPMERKLECHECK = ConfigVar('skipmerklecheck', default=False, type_=bool)
     NETWORK_SERVERFINGERPRINT = ConfigVar('serverfingerprint', default=None, type_=str)
-    NETWORK_MAX_INCOMING_MSG_SIZE = ConfigVar('network_max_incoming_msg_size', default=1_000_000, type_=int)  # in bytes
+    NETWORK_MAX_INCOMING_MSG_SIZE = ConfigVar('network_max_incoming_msg_size', default=200_000_000, type_=int)  # in bytes (200 MB for large transaction histories)
     NETWORK_TIMEOUT = ConfigVar('network_timeout', default=None, type_=int)
 
     WALLET_BATCH_RBF = ConfigVar('batch_rbf', default=False, type_=bool)

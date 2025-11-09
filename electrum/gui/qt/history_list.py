@@ -27,8 +27,9 @@ import os
 import sys
 import time
 import datetime
+import asyncio
 from datetime import date
-from typing import TYPE_CHECKING, Tuple, Dict, Any
+from typing import TYPE_CHECKING, Tuple, Dict, Any, Optional
 import threading
 import enum
 from decimal import Decimal
@@ -47,9 +48,10 @@ from electrum.address_synchronizer import TX_HEIGHT_LOCAL, TX_HEIGHT_FUTURE
 from electrum.i18n import _
 from electrum.util import (block_explorer_URL, profiler, TxMinedInfo,
                            OrderedDictWithIndex, timestamp_to_datetime,
-                           Satoshis, Fiat, format_time)
+                           Satoshis, Fiat, format_time, get_asyncio_loop)
 from electrum.logging import get_logger, Logger
 from electrum.simple_config import SimpleConfig
+from electrum.thread_pools import run_in_wallet_thread
 
 from .custom_model import CustomNode, CustomModel
 from .util import (read_QIcon, MONOSPACE_FONT, Buttons, CancelButton, OkButton,
@@ -262,6 +264,14 @@ class HistoryModel(CustomModel, Logger):
         self.view = None  # type: HistoryList
         self.transactions = OrderedDictWithIndex()
         self.tx_status_cache = {}  # type: Dict[str, Tuple[int, str]]
+        # Pagination support for large wallets
+        self._full_transactions = OrderedDictWithIndex()
+        self._displayed_count = 500  # Show 500 most recent transactions initially
+        self._page_size = 500  # Load 500 more each time
+        # Cache for history optimization
+        self._cached_history = None  # type: Optional[OrderedDictWithIndex]
+        self._cached_blockchain_height = None  # type: Optional[int]
+        self._cached_domain_hash = None  # type: Optional[int]
 
     def set_view(self, history_list: 'HistoryList'):
         # FIXME HistoryModel and HistoryList mutually depend on each other.
@@ -295,6 +305,196 @@ class HistoryModel(CustomModel, Logger):
     def should_show_capital_gains(self):
         return self.should_show_fiat() and self.window.config.FX_HISTORY_RATES_CAPITAL_GAINS
 
+    def load_more(self):
+        """Load more transactions (pagination)"""
+        self._displayed_count += self._page_size
+        self.logger.info(f"Loading more transactions, new limit: {self._displayed_count}")
+        self.refresh('load_more')
+
+    def _get_domain_hash(self):
+        """Calculate hash of domain addresses for cache invalidation"""
+        domain = tuple(sorted(self.get_domain()))
+        return hash(domain)
+
+    def _update_confirmations_only(self, all_transactions: OrderedDictWithIndex):
+        """Optimized update: only refresh confirmations without recalculating entire history"""
+        if not self._cached_history:
+            return False
+        
+        wallet = self.window.wallet
+        network = wallet.network
+        if not network:
+            return False
+        
+        current_height = network.get_local_height()
+        if current_height == self._cached_blockchain_height:
+            # No new blocks, nothing to update
+            return True
+        
+        # Update confirmations for all cached transactions
+        updated_count = 0
+        for (txid, asset), tx_item in self._cached_history.items():
+            # Get updated height and confirmations
+            tx_mined_status = wallet.adb.get_tx_height(txid)
+            old_height = tx_item.get('height', 0)
+            old_conf = tx_item.get('confirmations', 0)
+            
+            # Update if height or confirmations changed
+            if tx_mined_status.height != old_height or tx_mined_status.conf != old_conf:
+                tx_item['height'] = tx_mined_status.height
+                tx_item['confirmations'] = tx_mined_status.conf
+                tx_item['timestamp'] = tx_mined_status.timestamp
+                tx_item['date'] = timestamp_to_datetime(tx_mined_status.timestamp)
+                updated_count += 1
+        
+        # Update displayed transactions
+        for (txid, asset), tx_item in self.transactions.items():
+            if (txid, asset) in self._cached_history:
+                cached_item = self._cached_history[(txid, asset)]
+                tx_item['height'] = cached_item['height']
+                tx_item['confirmations'] = cached_item['confirmations']
+                tx_item['timestamp'] = cached_item['timestamp']
+                tx_item['date'] = cached_item['date']
+        
+        # Update status cache
+        self.tx_status_cache.clear()
+        for (txid, asset), tx_item in self.transactions.items():
+            if not tx_item.get('lightning', False):
+                tx_mined_info = HistoryModel._tx_mined_info_from_tx_item(tx_item)
+                self.tx_status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
+        
+        # Update blockchain height cache
+        self._cached_blockchain_height = current_height
+        
+        # Notify view of changes
+        if updated_count > 0:
+            topLeft = self.createIndex(0, 0)
+            bottomRight = self.createIndex(len(self.transactions) - 1, len(HistoryColumns) - 1)
+            self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
+        
+        return True
+
+    def _update_incremental(self, new_tx_count: int):
+        """Incremental update: update confirmations + add only new transactions"""
+        del new_tx_count
+        if not self._cached_history:
+            return False
+
+        wallet = self.window.wallet
+        network = wallet.network
+        if not network:
+            return False
+
+        current_height = network.get_local_height()
+
+        # First, update confirmations for existing cached transactions
+        updated_conf_count = 0
+        for (txid, asset), tx_item in self._cached_history.items():
+            tx_mined_status = wallet.adb.get_tx_height(txid)
+            old_height = tx_item.get('height', 0)
+            old_conf = tx_item.get('confirmations', 0)
+
+            if tx_mined_status.height != old_height or tx_mined_status.conf != old_conf:
+                tx_item['height'] = tx_mined_status.height
+                tx_item['confirmations'] = tx_mined_status.conf
+                tx_item['timestamp'] = tx_mined_status.timestamp
+                tx_item['date'] = timestamp_to_datetime(tx_mined_status.timestamp)
+                updated_conf_count += 1
+
+        # Get only the NEW transactions (those not in cache)
+        # We'll get full history but only process new ones
+        try:
+            loop = get_asyncio_loop()
+        except Exception:
+            all_transactions = wallet.get_full_history(
+                self.window.fx,
+                onchain_domain=self.get_domain(),
+                include_lightning=self.should_include_lightning_payments(),
+                include_fiat=self.should_show_fiat(),
+            )
+        else:
+            future = asyncio.run_coroutine_threadsafe(
+                run_in_wallet_thread(
+                    wallet.get_full_history,
+                    self.window.fx,
+                    onchain_domain=self.get_domain(),
+                    include_lightning=self.should_include_lightning_payments(),
+                    include_fiat=self.should_show_fiat(),
+                ),
+                loop,
+            )
+            all_transactions = future.result()
+
+        # Add new transactions to cache
+        for key, tx_item in all_transactions.items():
+            if key not in self._cached_history:
+                self._cached_history[key] = tx_item
+
+        # Update full_transactions with new data
+        self._full_transactions = all_transactions
+
+        if not wallet.is_up_to_date():
+            self.logger.debug("Wallet not up to date; deferring incremental display")
+            self._clear_transactions_view()
+            return False
+
+        # Prepare display data outside GUI thread
+        display_items = self._prepare_display_data(all_transactions)
+        displayed_transactions = OrderedDictWithIndex()
+        for key, tx_item in display_items:
+            cached_item = self._cached_history.get(key)
+            if cached_item:
+                tx_item['height'] = cached_item['height']
+                tx_item['confirmations'] = cached_item['confirmations']
+                tx_item['timestamp'] = cached_item['timestamp']
+                tx_item['date'] = cached_item['date']
+            displayed_transactions[key] = tx_item
+
+        # Update blockchain height cache
+        self._cached_blockchain_height = current_height
+
+        # If displayed transactions changed, rebuild the view
+        if displayed_transactions != self.transactions:
+            # Rebuild view with updated data
+            old_length = self._root.childCount()
+            if old_length != 0:
+                self.beginRemoveRows(QModelIndex(), 0, old_length)
+                self.transactions.clear()
+                self._root = HistoryNode(self, None)
+                self.endRemoveRows()
+
+            parents = {}
+            for tx_item in displayed_transactions.values():
+                node = HistoryNode(self, tx_item)
+                self._root.addChild(node)
+                for child_item in tx_item.get('children', []):
+                    child_node = HistoryNode(self, child_item)
+                    node.addChild(child_node)
+
+            new_length = self._root.childCount()
+            self.beginInsertRows(QModelIndex(), 0, new_length-1)
+            self.transactions = displayed_transactions
+            self.endInsertRows()
+
+            # Update status cache
+            self.tx_status_cache.clear()
+            for (txid, asset), tx_item in self.transactions.items():
+                if not tx_item.get('lightning', False):
+                    tx_mined_info = HistoryModel._tx_mined_info_from_tx_item(tx_item)
+                    self.tx_status_cache[(txid, asset)] = wallet.get_tx_status(txid, tx_mined_info)
+
+            self.view.filter()
+        else:
+            # Only confirmations changed, just notify view
+            if updated_conf_count > 0:
+                topLeft = self.createIndex(0, 0)
+                bottomRight = self.createIndex(len(self.transactions) - 1, len(HistoryColumns) - 1)
+                self.dataChanged.emit(topLeft, bottomRight, [Qt.DisplayRole])
+
+        self._update_pagination_widgets()
+
+        return True
+
     @profiler
     def refresh(self, reason: str):
         self.logger.info(f"refreshing... reason: {reason}")
@@ -302,30 +502,104 @@ class HistoryModel(CustomModel, Logger):
         assert self.view, 'view not set'
         if self.view.maybe_defer_update():
             return
+        
+        wallet = self.window.wallet
+        network = wallet.network
+        current_height = network.get_local_height() if network else None
+        domain_hash = self._get_domain_hash()
+        
+        # Check if cache exists and is valid
+        cache_exists = (
+            self._cached_history is not None and
+            self._cached_domain_hash == domain_hash and
+            current_height is not None
+        )
+        
+        # Get current transaction count (quick check)
+        cached_tx_count = len(self._cached_history) if self._cached_history else 0
+        current_tx_count = 0
+        try:
+            current_tx_count = len(list(wallet.adb.get_history(domain=self.get_domain())))
+        except Exception:
+            pass
+        
+        has_new_transactions = current_tx_count > cached_tx_count
+        is_blockchain_only_update = reason in ('blockchain_updated', 'refresh_tabs')
+        
+        # Optimization 1: Try to use cache for blockchain_updated or update_tabs
+        if cache_exists and (is_blockchain_only_update or reason == 'update_tabs'):
+            if not has_new_transactions:
+                # No new transactions, safe to update only confirmations
+                if self._update_confirmations_only(self._full_transactions):
+                    return
+            else:
+                # New transactions exist, use incremental update
+                if self._update_incremental(current_tx_count - cached_tx_count):
+                    return
+        
+        # Optimization 2: For update_tabs, only invalidate cache if domain changed or no cache
+        # This prevents unnecessary cache invalidation when only confirmations changed
+        if reason == 'update_tabs' and cache_exists and not has_new_transactions:
+            # Domain unchanged, no new transactions - try to use cache
+            if self._update_confirmations_only(self._full_transactions):
+                return
+        
+        # Invalidate cache only if necessary (domain changed or forced refresh)
+        if reason not in ('blockchain_updated', 'refresh_tabs', 'update_tabs') or domain_hash != self._cached_domain_hash:
+            self._cached_history = None
+            self._cached_blockchain_height = None
+            self._cached_domain_hash = None
+        
+        # Full refresh: recalculate everything
         selected = self.view.selectionModel().currentIndex()
         selected_row = None
         if selected:
             selected_row = selected.row()
         fx = self.window.fx
         if fx: fx.history_used_spot = False
-        wallet = self.window.wallet
         self.set_visibility_of_columns()
-        transactions = wallet.get_full_history(
-            self.window.fx,
+        
+        # Get ALL transactions but only display a subset (pagination)
+        fetch_kwargs = dict(
+            fx=self.window.fx,
             onchain_domain=self.get_domain(),
             include_lightning=self.should_include_lightning_payments(),
             include_fiat=self.should_show_fiat(),
         )
-        
+        try:
+            loop = get_asyncio_loop()
+        except Exception:
+            all_transactions = wallet.get_full_history(**fetch_kwargs)
+        else:
+            future = asyncio.run_coroutine_threadsafe(
+                run_in_wallet_thread(wallet.get_full_history, **fetch_kwargs),
+                loop,
+            )
+            all_transactions = future.result()
+
+        # Store full list for pagination and cache
+        self._full_transactions = all_transactions
+        self._cached_history = all_transactions
+        self._cached_blockchain_height = current_height
+        self._cached_domain_hash = domain_hash
+        total_count = len(all_transactions)
+
+        if not wallet.is_up_to_date():
+            self.logger.debug("Wallet not up to date; deferring history display")
+            self._clear_transactions_view()
+            return
+
+        # Only show the most recent _displayed_count transactions
+        display_items = self._prepare_display_data(all_transactions)
+        transactions = OrderedDictWithIndex()
+        for key, tx_item in display_items:
+            transactions[key] = tx_item
+
+        self.logger.debug(f"Displaying {len(transactions)} of {total_count} total transactions")
+
         if transactions == self.transactions:
             return
 
-        #for transaction in transactions.values():
-        #    print(transaction['txid'])
-        #    print(transaction['asset'])
-        #    print(transaction['bc_value'])
-        #    print('==========')
-        
         old_length = self._root.childCount()
         if old_length != 0:
             self.beginRemoveRows(QModelIndex(), 0, old_length)
@@ -340,14 +614,6 @@ class HistoryModel(CustomModel, Logger):
                 child_node = HistoryNode(self, child_item)
                 # add child to parent
                 node.addChild(child_node)
-
-        # compute balance once all children have beed added
-        balance = defaultdict(int)
-        for node in self._root._children:
-            asset = node._data.get('asset', None)
-            sats = node._data['value']
-            balance[asset] += sats.value
-            node._data['balance'] = Satoshis(balance[asset])
 
         new_length = self._root.childCount()
         self.beginInsertRows(QModelIndex(), 0, new_length-1)
@@ -372,10 +638,70 @@ class HistoryModel(CustomModel, Logger):
             if not tx_item.get('lightning', False):
                 tx_mined_info = self._tx_mined_info_from_tx_item(tx_item)
                 self.tx_status_cache[(txid, asset)] = self.window.wallet.get_tx_status(txid, tx_mined_info)
-        # update counter
-        num_tx = len(set(v['txid'] for v in self.transactions.values()))
-        if self.view:
+        self._update_pagination_widgets()
+
+    @staticmethod
+    def _prepare_display_data_worker(all_transactions: OrderedDictWithIndex, displayed_count: int):
+        items = list(all_transactions.items())
+        if not items:
+            return []
+        start_index = max(0, len(items) - displayed_count)
+        balance = defaultdict(int)
+        selected = []
+        for key, tx_item in items[start_index:]:
+            asset = tx_item.get('asset') or None
+            value_obj = tx_item.get('value')
+            value = 0
+            if isinstance(value_obj, Satoshis):
+                value = value_obj.value
+            elif value_obj is not None:
+                try:
+                    value = value_obj.value
+                except AttributeError:
+                    pass
+            balance[asset] += value
+            tx_item['balance'] = Satoshis(balance[asset])
+            selected.append((key, tx_item))
+        return selected
+
+    def _prepare_display_data(self, all_transactions: OrderedDictWithIndex):
+        try:
+            loop = get_asyncio_loop()
+        except Exception:
+            return self._prepare_display_data_worker(all_transactions, self._displayed_count)
+        future = asyncio.run_coroutine_threadsafe(
+            run_in_wallet_thread(
+                HistoryModel._prepare_display_data_worker,
+                all_transactions,
+                self._displayed_count,
+            ),
+            loop,
+        )
+        return future.result()
+
+    def _clear_transactions_view(self):
+        child_count = self._root.childCount()
+        if child_count:
+            self.beginRemoveRows(QModelIndex(), 0, child_count - 1)
+            self.transactions.clear()
+            self._root = HistoryNode(self, None)
+            self.endRemoveRows()
+        self.tx_status_cache.clear()
+        self._update_pagination_widgets()
+
+    def _update_pagination_widgets(self):
+        """Update toolbar label/button that reflect pagination state."""
+        if not self.view:
+            return
+        num_tx = len({v['txid'] for v in self.transactions.values()})
+        total_tx = len({v['txid'] for v in self._full_transactions.values()}) if self._full_transactions else num_tx
+        if num_tx < total_tx:
+            self.view.num_tx_label.setText(_("Showing {} of {} transactions").format(num_tx, total_tx))
+            self.view.load_more_button.setVisible(True)
+            self.view.load_more_button.setEnabled(True)
+        else:
             self.view.num_tx_label.setText(_("{} transactions").format(num_tx))
+            self.view.load_more_button.setVisible(False)
 
     def set_visibility_of_columns(self):
         def set_visible(col: int, b: bool):
@@ -502,7 +828,8 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             tx_item = self.tx_item_from_proxy_row(proxy_row)
             date = tx_item['date']
             if date:
-                in_interval = self.start_date <= date <= self.end_date
+                end_exclusive = self.end_date + datetime.timedelta(days=1)
+                in_interval = self.start_date <= date < end_exclusive
                 if not in_interval:
                     return True
             return False
@@ -579,8 +906,19 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         menu.addAction(_("&Export"), self.export_history_dialog)
         hbox = self.create_toolbar_buttons()
         toolbar.insertLayout(1, hbox)
+        
+        # Add "Load More" button for pagination
+        self.load_more_button = QPushButton(_("Load More..."))
+        self.load_more_button.clicked.connect(self.on_load_more)
+        self.load_more_button.setVisible(False)  # Hidden by default
+        toolbar.addWidget(self.load_more_button)
+        
         self.update_toolbar_menu()
         return toolbar
+    
+    def on_load_more(self):
+        """Called when user clicks Load More button"""
+        self.hm.load_more()
 
     def update_toolbar_menu(self):
         fx = self.main_window.fx

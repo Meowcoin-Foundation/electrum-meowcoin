@@ -459,6 +459,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
             self.broadcast_view_tab.has_new = False
             self.broadcast_view_tab.tab_icon = read_QIcon('broadcast_recv.png')
             self.tabs.setTabIcon(i, self.broadcast_view_tab.tab_icon)
+        
+        # Lazy loading for UTXO tab (Coins)
+        if i >= 0 and i == self.tabs.indexOf(self.utxo_tab):
+            if not self.utxo_list._has_loaded_once:
+                self.logger.info("Loading UTXO tab for the first time...")
+                self.utxo_list.update(force=True)
 
     @qt_event_listener
     def on_event_adb_added_verified_broadcast(self, *args):
@@ -483,7 +489,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
     @qt_event_listener
     def on_event_blockchain_updated(self, *args):
         # update the number of confirmations in history
-        self.refresh_tabs()
+        # Use 'blockchain_updated' reason to enable cache optimization
+        self.history_model.refresh('blockchain_updated')
+        # Still refresh other tabs normally
+        self.receive_tab.request_list.refresh_all()
+        self.send_tab.invoice_list.refresh_all()
+        self.address_list.refresh_all()
+        self.utxo_list.refresh_all()
+        self.contact_list.refresh_all()
 
     @qt_event_listener
     def on_event_on_quotes(self, *args):
@@ -1109,7 +1122,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, Logger, QtEventListener):
         self.receive_tab.update_current_request()
         self.send_tab.update()
         self.address_list.update()
-        self.utxo_list.update()
+        # UTXO tab uses lazy loading - only updates when user opens the tab
+        # self.utxo_list.update()
         self.contact_list.update()
         #self.channels_list.update_rows.emit(wallet)
         self.asset_tab.update()

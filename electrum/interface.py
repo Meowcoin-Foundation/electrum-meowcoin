@@ -370,6 +370,7 @@ def _get_cert_path_for_host(*, config: 'SimpleConfig', host: str) -> str:
 class Interface(Logger):
 
     LOGGING_SHORTCUT = 'i'
+    CHUNK_LOG_INTERVAL = 500_000
 
     def __init__(self, *, network: 'Network', server: ServerAddr, proxy: Optional[dict]):
         self.ready = network.asyncio_loop.create_future()
@@ -380,9 +381,6 @@ class Interface(Logger):
         self.cert_path = _get_cert_path_for_host(config=network.config, host=self.host)
         self.blockchain = None  # type: Optional[Blockchain]
         self._requested_chunks = set()  # type: Set[int]
-        
-        # ADAPTIVE CHUNK SIZING: Remove local counters, use persistent network counters
-        # (Persistent counters now stored in network object, keyed by server+height)
         
         self.network = network
         self.session = None  # type: Optional[NotificationSession]
@@ -405,6 +403,7 @@ class Interface(Logger):
         self.tip = 0
 
         self.fee_estimates_eta = {}  # type: Dict[int, int]
+        self._chunk_request_count = 0
 
         # Dump network messages (only for this interface).  Set at runtime from the console.
         self.debug = False
@@ -647,42 +646,21 @@ class Interface(Logger):
         if can_return_early and ret:
             return
 
-        # CRITICAL: ADAPTIVE chunk sizing based on persistent timeout history
-        # Some regions have high Scrypt density causing server LWMA timeout
-        # Strategy: Reduce chunk size progressively after timeouts (persists across reconnects)
-        if height > constants.net.max_checkpoint():
-            # Get timeout count from persistent network storage
-            server_addr_str = str(self.server)
-            timeout_count = self.network.get_timeout_count(server_addr_str, height)
-            
-            # Start with 128, reduce based on timeout count
-            if timeout_count >= 3:
-                size = 32  # Very problematic region (multiple timeouts recorded)
-            elif timeout_count >= 1:
-                size = 64  # Problematic region (some timeouts recorded)
-            else:
-                size = 128  # Optimistic (no timeouts recorded)
-        else:
-            size = 2016  # Full chunks within checkpoint region
-        
+        self._chunk_request_count += 1
+        if (
+            self._chunk_request_count == 1
+            or self._chunk_request_count % self.CHUNK_LOG_INTERVAL == 0
+        ):
+            self.logger.info(
+                f"requested {self._chunk_request_count} header chunks so far (latest start height {height})"
+            )
+        size = 2016
         if tip is not None:
             size = min(size, tip - height + 1)
             size = max(size, 0)
         try:
             self._requested_chunks.add((height, height + size))            
             res = await self.session.send_request('blockchain.block.headers', [height, size])
-        except aiorpcx.jsonrpc.RPCError as e:
-            # CRITICAL: Handle server timeouts WITHOUT disconnecting entire interface
-            # This prevents unnecessary synchronizer/verifier restarts and wallet resubscriptions
-            if e.code == JSONRPC.SERVER_BUSY and 'timed out' in str(e):
-                if height > constants.net.max_checkpoint():
-                    server_addr_str = str(self.server)
-                    new_count = self.network.increment_timeout_count(server_addr_str, height)
-                    self.logger.warning(f"⏱️  Chunk timeout at {height} (requested {size} blocks). Adaptive counter: {new_count}. Will retry with smaller chunk. Session stays connected.")
-                # Return failure WITHOUT disconnecting - let sync_until retry with smaller chunk
-                return False, 0
-            # For other RPC errors (not timeouts), still disconnect
-            raise
         finally:
             self._requested_chunks.discard((height, height + size))        
         assert_dict_contains_field(res, field_name='count')
@@ -713,11 +691,6 @@ class Interface(Logger):
 
         if not conn:
             return conn, 0
-        
-        # SUCCESS: Reduce timeout counter (decay back to optimistic sizing, persistent)
-        if height > constants.net.max_checkpoint():
-            server_addr_str = str(self.server)
-            self.network.decrement_timeout_count(server_addr_str, height)
         
         return conn, res['count']
 
@@ -863,6 +836,14 @@ class Interface(Logger):
                 # in the simple case, height == self.tip+1
                 if height <= self.tip:
                     await self.sync_until(height)
+                
+                # CRITICAL: After processing, check if more blocks arrived
+                # Server may have mined more blocks while we were processing
+                final_blockchain_height = self.blockchain.height()
+                if final_blockchain_height < self.tip:
+                    self.logger.info(f"Continuing sync: blockchain={final_blockchain_height}, server tip={self.tip}")
+                    await self.sync_until(final_blockchain_height + 1)
+                
                 return True
 
     async def sync_until(self, height, next_height=None):
@@ -885,9 +866,7 @@ class Interface(Logger):
                 if not could_connect:
                     if height <= constants.net.max_checkpoint():
                         raise GracefulDisconnect('server chain conflicts with checkpoints or genesis')
-                    # Timeout occurred - request_chunk already incremented adaptive counter
-                    # Simply continue loop to retry with smaller chunk size
-                    await asyncio.sleep(0.5)  # Brief pause before retry
+                    last, height = await self.step(height)
                     continue
 
                 util.trigger_callback('network_updated')
