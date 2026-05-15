@@ -101,7 +101,7 @@ XCB_UTIL_VERSION="acf790d7752f36e450d476ad79807d4012ec863b"
     mkdir "libxcb-util1"
     cd "libxcb-util1"
     if [ ! -d util ]; then
-        git clone --recursive "https://anongit.freedesktop.org/git/xcb/util"
+        git clone --recursive "https://gitlab.freedesktop.org/xorg/lib/libxcb-util" util
     fi
     cd util
     if ! $(git cat-file -e ${XCB_UTIL_VERSION}) ; then
