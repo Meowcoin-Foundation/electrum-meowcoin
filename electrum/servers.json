@@ -1,21 +1,32 @@
 {
-  "meowelectrum.xyz": {
+  "electrs.mewccrypto.com": {
     "pruning": "-",
     "s": "50002",
     "t": "50001",
-    "version": "1.11"
+    "version": "1.4"
   },
-  "meowelectrum2.testtopper.biz": {
+  "electrs2.mewccrypto.com": {
     "pruning": "-",
     "s": "50002",
     "t": "50001",
-    "version": "1.11"
+    "version": "1.4"
   },
-  "electrum.mewccrypto.com": {
+  "electrs3.meowcoin.org": {
     "pruning": "-",
     "s": "50002",
     "t": "50001",
-    "version": "1.11"
+    "version": "1.4"
+  },
+  "electrs4.meowcoin.org": {
+    "pruning": "-",
+    "s": "50002",
+    "t": "50001",
+    "version": "1.4"
+  },
+  "electrs5.meowcoin.org": {
+    "pruning": "-",
+    "s": "50002",
+    "t": "50001",
+    "version": "1.4"
   }
 }
-  
