@@ -1119,7 +1119,7 @@ class Interface(Logger):
         if not is_hash256_str(sh):
             raise Exception(f"{repr(sh)} is not a scripthash")
         # do request
-        res = await self.session.send_request('blockchain.scripthash.listunspent', [sh, asset])
+        res = await self.session.send_request('blockchain.scripthash.listunspent', [sh])
         # check response
         assert_list_or_tuple(res)
         for utxo_item in res:

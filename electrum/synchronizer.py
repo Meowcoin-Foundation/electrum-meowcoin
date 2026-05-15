@@ -327,46 +327,32 @@ class SynchronizerBase(NetworkJobOnDefaultServer):
         self._requests_answered += 1
 
     async def _subscribe_to_asset(self, asset):
-        self._requests_sent += 1
-        async with self._network_request_semaphore:
-            await self.session.subscribe('blockchain.asset.subscribe', [asset], self.asset_status_queue)
-        self._requests_answered += 1
+        # Not supported by electrs; skip to avoid connection drop on unknown method
+        self.requested_assets.discard(asset)
 
     async def _subscribe_to_qualifier_for_tags(self, asset):
-        self._requests_sent += 1
-        async with self._network_request_semaphore:
-            await self.session.subscribe('blockchain.tag.qualifier.subscribe', [asset], self.qualifier_tags_status_queue)
-        self._requests_answered += 1
+        # Not supported by electrs; skip to avoid connection drop on unknown method
+        self.requested_qualifiers_for_tags.discard(asset)
 
     async def _subscribe_to_h160_for_tags(self, h160):
-        self._requests_sent += 1
-        async with self._network_request_semaphore:
-            await self.session.subscribe('blockchain.tag.h160.subscribe', [h160], self.h160_tags_status_queue)
-        self._requests_answered += 1
+        # Not supported by electrs; skip to avoid connection drop on unknown method
+        self.requested_h160s_for_tags.discard(h160)
 
     async def _subscribe_to_restricted_for_verifier(self, asset):
-        self._requests_sent += 1
-        async with self._network_request_semaphore:
-            await self.session.subscribe('blockchain.asset.verifier_string.subscribe', [asset], self.restricted_verifier_queue)
-        self._requests_answered += 1
+        # Not supported by electrs; skip to avoid connection drop on unknown method
+        self.requested_restricted_for_verifier.discard(asset)
 
     async def _subscribe_to_restricted_for_freeze(self, asset):
-        self._requests_sent += 1
-        async with self._network_request_semaphore:
-            await self.session.subscribe('blockchain.asset.is_frozen.subscribe', [asset], self.restricted_freeze_queue)
-        self._requests_answered += 1
+        # Not supported by electrs; skip to avoid connection drop on unknown method
+        self.requested_restricted_for_freeze.discard(asset)
 
     async def _subscribe_to_broadcast(self, asset):
-        self._requests_sent += 1
-        async with self._network_request_semaphore:
-            await self.session.subscribe('blockchain.asset.broadcasts.subscribe', [asset], self.broadcast_status_queue)
-        self._requests_answered += 1
+        # Not supported by electrs; skip to avoid connection drop on unknown method
+        self.requested_broadcasts.discard(asset)
 
     async def _subscribe_to_qualifier_associations(self, asset):
-        self._requests_sent += 1
-        async with self._network_request_semaphore:
-            await self.session.subscribe('blockchain.asset.restricted_associations.subscribe', [asset], self.qualifier_association_status_queue)
-        self._requests_answered += 1
+        # Not supported by electrs; skip to avoid connection drop on unknown method
+        self.requested_qualifier_associations.discard(asset)
 
     async def handle_status(self):
         while True:
